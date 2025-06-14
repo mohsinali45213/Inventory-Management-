@@ -1,20 +1,13 @@
 import ProductVariant from "../models/productVariant.models.js";
-import Product from "../models/products.models.js"; // Ensure correct model import
-import slugify from "../utils/slugify.js"; // optional helper to create slugs
+import Product from "../models/products.models.js";
+import slugify from "../utils/slugify.js";
+import { generateBarcode } from "../utils/barcode.js";
 
 // ✅ Create a new Product Variant
 export const createProductVariant = async (req, res) => {
   try {
-    const {
-      productId,
-      size,
-      color,
-      stock_qty,
-      price,
-      slug,
-      barcode,
-      Image_url,
-    } = req.body;
+    const { productId, size, color, stock_qty, price, slug, image_url } =
+      req.body;
 
     const productExists = await Product.findByPk(productId);
     if (!productExists) {
@@ -24,15 +17,39 @@ export const createProductVariant = async (req, res) => {
       });
     }
 
+    const variantExists = await ProductVariant.findOne({
+      where: {
+        productId,
+        size,
+        color,
+      },
+    });
+
+    if (variantExists) {
+      return res.status(400).json({
+        success: false,
+        message: "This product variant (size and color) already exists",
+      });
+    }
+
+    // Check if same size exists (for barcode reuse)
+    const sameSizeVariant = await ProductVariant.findOne({
+      where: { productId, size },
+    });
+
+    const barcode = sameSizeVariant
+      ? sameSizeVariant.barcode
+      : generateBarcode();
+
     const newVariant = await ProductVariant.create({
       productId,
-      size,
-      color,
+      size: size.trim().toLowerCase(),
+      color: color.trim().toLowerCase(),
       stock_qty,
       price,
-      slug: slug || slugify(`${size}-${color}-${Date.now()}`),
+      slug: slug || slugify(`${size}-${color}-${Date.now()}`).toLowerCase(),
       barcode,
-      Image_url,
+      image_url,
     });
 
     res.status(201).json({
@@ -104,16 +121,8 @@ export const getProductVariantById = async (req, res) => {
 export const updateProductVariant = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      productId,
-      size,
-      color,
-      stock_qty,
-      price,
-      slug,
-      barcode,
-      Image_url,
-    } = req.body;
+    const { productId, size, color, stock_qty, price, slug, Image_url } =
+      req.body;
 
     const variant = await ProductVariant.findByPk(id);
 
@@ -142,7 +151,7 @@ export const updateProductVariant = async (req, res) => {
       stock_qty: stock_qty ?? variant.stock_qty,
       price: price ?? variant.price,
       slug: slug || variant.slug,
-      barcode: barcode || variant.barcode,
+      // barcode: barcode || variant.barcode,
       Image_url: Image_url || variant.Image_url,
     });
 
