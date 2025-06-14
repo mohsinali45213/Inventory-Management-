@@ -1,5 +1,6 @@
 import Brand from "../models/brand.models.js";
 import slugify from "../utils/slugify.js";
+import { Op } from "sequelize";
 
 // 🔐 Validation Helper
 const validateBrandInput = (name, status) => {
@@ -82,16 +83,24 @@ export const updateBrand = async (req, res) => {
       });
     }
 
-    // Prevent duplicate brand names (excluding current brand)
-    const duplicate = await Brand.findOne({ where: { name } });
-    if (duplicate && duplicate.id !== parseInt(id)) {
-      return res.status(409).json({
-        success: false,
-        message: "Another brand with this name already exists",
+    // Check if name changed
+    if (name !== brand.name) {
+      const duplicate = await Brand.findOne({
+        where: {
+          name,
+          id: { [Op.ne]: id }, // exclude current brand from conflict check
+        },
       });
+
+      if (duplicate) {
+        return res.status(409).json({
+          success: false,
+          message: "Another brand with this name already exists",
+        });
+      }
     }
 
-    const slug = slugify(name);
+    const slug = slugify(name, { lower: true });
     await brand.update({ name, slug, status });
 
     return res.status(200).json({
@@ -107,6 +116,7 @@ export const updateBrand = async (req, res) => {
     });
   }
 };
+
 
 // ✅ Get all brands
 export const getAllBrands = async (req, res) => {
