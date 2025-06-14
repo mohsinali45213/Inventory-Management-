@@ -35,15 +35,6 @@ export const createProductVariant = async (req, res) => {
       });
     }
 
-    // Check if same size exists (for barcode reuse)
-    const sameSizeVariant = await ProductVariant.findOne({
-      where: { productId, size },
-    });
-
-    const barcode = sameSizeVariant
-      ? sameSizeVariant.barcode
-      : generateBarcode();
-
     const newVariant = await ProductVariant.create({
       productId,
       size,
@@ -125,7 +116,7 @@ export const getProductVariantById = async (req, res) => {
 export const updateProductVariant = async (req, res) => {
   try {
     const { id } = req.params;
-    const { productId, size, color, stock_qty, price, slug, Image_url } =
+    const { productId, size, color, stock_qty, price, slug } =
       req.body;
 
     const variant = await ProductVariant.findByPk(id);
@@ -163,7 +154,7 @@ export const updateProductVariant = async (req, res) => {
       price: price ?? variant.price,
       slug: slug || variant.slug,
       // barcode: barcode || variant.barcode,
-      Image_url: Image_url || variant.Image_url,
+      image_url: image_url || variant.image_url,
     });
 
     res.status(200).json({

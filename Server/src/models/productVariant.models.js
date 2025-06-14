@@ -58,9 +58,4 @@ ProductVariant.associate = (models) => {
     as: "product",
   });
 };
-<<<<<<< HEAD
 export default ProductVariant;
-=======
-export default ProductVariant;
-
->>>>>>> 2ac0973b559ded815548694ecf1962cb02e25cc7
