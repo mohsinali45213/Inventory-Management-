@@ -40,6 +40,10 @@ export const createProductVariant = async (req, res) => {
     const barcode = sameSizeVariant
       ? sameSizeVariant.barcode
       : generateBarcode();
+    // let barcode = variant.barcode;
+    // if (size && size !== variant.size) {
+    //   barcode = generateBarcode(variant.productId, size);
+    // }
 
     const newVariant = await ProductVariant.create({
       productId,
@@ -58,6 +62,7 @@ export const createProductVariant = async (req, res) => {
       data: newVariant,
     });
   } catch (error) {
+    console.error("Create variant error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to create product variant",
@@ -143,6 +148,10 @@ export const updateProductVariant = async (req, res) => {
         });
       }
     }
+    let barcode = variant.barcode;
+    if (size && size !== variant.size) {
+      barcode = generateBarcode(variant.productId, size);
+    }
 
     await variant.update({
       productId: productId || variant.productId,
@@ -151,8 +160,8 @@ export const updateProductVariant = async (req, res) => {
       stock_qty: stock_qty ?? variant.stock_qty,
       price: price ?? variant.price,
       slug: slug || variant.slug,
-      // barcode: barcode || variant.barcode,
-      Image_url: Image_url || variant.Image_url,
+      barcode,
+      image_url: Image_url || variant.Image_url,
     });
 
     res.status(200).json({
@@ -197,3 +206,6 @@ export const deleteProductVariant = async (req, res) => {
     });
   }
 };
+
+
+
