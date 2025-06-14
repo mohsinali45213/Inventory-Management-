@@ -2,12 +2,12 @@ import ProductVariant from "../models/productVariant.models.js";
 import Product from "../models/products.models.js";
 import slugify from "../utils/slugify.js";
 import { generateBarcode } from "../utils/barcode.js";
+import uploadOnCloudinary from "../utils/cloudinary.js";
 
 // ✅ Create a new Product Variant
 export const createProductVariant = async (req, res) => {
   try {
-    const { productId, size, color, stock_qty, price, slug, image_url } =
-      req.body;
+    const { productId, size, color, stock_qty, price, slug } = req.body;
 
     const productExists = await Product.findByPk(productId);
     if (!productExists) {
@@ -16,6 +16,9 @@ export const createProductVariant = async (req, res) => {
         message: "Product not found",
       });
     }
+
+    const result = await uploadOnCloudinary(req.file.path);
+    const image_url = result.url;
 
     const variantExists = await ProductVariant.findOne({
       where: {
@@ -32,23 +35,14 @@ export const createProductVariant = async (req, res) => {
       });
     }
 
-    // Check if same size exists (for barcode reuse)
-    const sameSizeVariant = await ProductVariant.findOne({
-      where: { productId, size },
-    });
-
-    const barcode = sameSizeVariant
-      ? sameSizeVariant.barcode
-      : generateBarcode();
-
     const newVariant = await ProductVariant.create({
       productId,
-      size: size.trim().toLowerCase(),
-      color: color.trim().toLowerCase(),
+      size,
+      color,
       stock_qty,
       price,
       slug: slug || slugify(`${size}-${color}-${Date.now()}`).toLowerCase(),
-      barcode,
+      barcode: generateBarcode(),
       image_url,
     });
 
@@ -133,6 +127,9 @@ export const updateProductVariant = async (req, res) => {
       });
     }
 
+    const result = await uploadOnCloudinary(req.file.path);
+    const image_url = result.url;
+
     // Optionally validate product existence
     if (productId) {
       const productExists = await Product.findByPk(productId);
@@ -151,8 +148,7 @@ export const updateProductVariant = async (req, res) => {
       stock_qty: stock_qty ?? variant.stock_qty,
       price: price ?? variant.price,
       slug: slug || variant.slug,
-      // barcode: barcode || variant.barcode,
-      Image_url: Image_url || variant.Image_url,
+      image_url: image_url || variant.image_url,
     });
 
     res.status(200).json({

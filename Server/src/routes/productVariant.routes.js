@@ -6,13 +6,14 @@ import {
   updateProductVariant,
   deleteProductVariant,
 } from "../controllers/productVariant.controllers.js";
+import {upload} from "../middlewares/multer.js";
 
 const productVariantRouter = express.Router();
 
-productVariantRouter.post("/", createProductVariant);
+productVariantRouter.post("/", upload.single("image_url"), createProductVariant);
 productVariantRouter.get("/", getAllProductVariants);
 productVariantRouter.get("/:id", getProductVariantById);
-productVariantRouter.put("/:id", updateProductVariant);
+productVariantRouter.put("/:id", upload.single("image_url"), updateProductVariant);
 productVariantRouter.delete("/:id", deleteProductVariant);
 
 export default productVariantRouter;

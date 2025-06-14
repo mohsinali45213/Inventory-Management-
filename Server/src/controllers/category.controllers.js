@@ -11,9 +11,6 @@ export const createCategory = async (req, res) => {
     if (!name || typeof name !== "string" || name.trim().length < 3) {
       errors.push("Name is required and should be at least 3 characters.");
     }
-    if (status === undefined || typeof status !== "boolean") {
-      errors.push("Status must be a boolean value.");
-    }
 
     if (errors.length > 0) {
       return res.status(400).json({ success: false, errors });
@@ -99,9 +96,6 @@ export const updateCategory = async (req, res) => {
     const errors = [];
     if (!name || typeof name !== "string" || name.trim().length < 3) {
       errors.push("Name is required and should be at least 3 characters.");
-    }
-    if (status === undefined || typeof status !== "boolean") {
-      errors.push("Status must be a boolean value.");
     }
 
     if (errors.length > 0) {

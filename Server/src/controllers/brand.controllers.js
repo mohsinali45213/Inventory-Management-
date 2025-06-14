@@ -32,6 +32,7 @@ export const createBrand = async (req, res) => {
         errors,
       });
     }
+    
 
     const existingBrand = await Brand.findOne({ where: { name } });
     if (existingBrand) {

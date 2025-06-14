@@ -22,13 +22,6 @@ export const createSubCategory = async (req, res) => {
       });
     }
 
-    if (typeof status !== "boolean") {
-      return res.status(400).json({
-        success: false,
-        message: "Status must be a boolean value",
-      });
-    }
-
     const category = await Category.findByPk(categoryId);
     if (!category) {
       return res
@@ -150,13 +143,6 @@ export const updateSubCategory = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Name must be at least 2 characters long",
-      });
-    }
-
-    if (status !== undefined && typeof status !== "boolean") {
-      return res.status(400).json({
-        success: false,
-        message: "Status must be a boolean value",
       });
     }
 
