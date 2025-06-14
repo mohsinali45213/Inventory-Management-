@@ -42,7 +42,6 @@ const ProductVariant = sequelize.define(
     barcode: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      // unique: true,
     },
     image_url: {
       type: DataTypes.STRING(255),
@@ -59,4 +58,9 @@ ProductVariant.associate = (models) => {
     as: "product",
   });
 };
+<<<<<<< HEAD
 export default ProductVariant;
+=======
+export default ProductVariant;
+
+>>>>>>> 2ac0973b559ded815548694ecf1962cb02e25cc7
