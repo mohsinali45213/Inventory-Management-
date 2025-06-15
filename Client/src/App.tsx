@@ -14,6 +14,7 @@ import Invoices from './pages/Invoices';
 import LowStock from './pages/LowStock';
 import Barcode from './pages/Barcode';
 import Reports from './pages/Reports';
+import SubCategories from './pages/SubCategories';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -33,6 +34,7 @@ const AppRoutes: React.FC = () => {
         <Route index element={<Dashboard />} />
         <Route path="products" element={<Products />} />
         <Route path="categories" element={<Categories />} />
+        <Route path="sub-categories" element={<SubCategories/>} />
         <Route path="brands" element={<Brands />} />
         <Route path="stock" element={<StockManagement />} />
         <Route path="invoices" element={<Invoices />} />

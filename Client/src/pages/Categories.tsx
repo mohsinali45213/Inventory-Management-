@@ -1,92 +1,109 @@
-import React, { useState } from 'react';
-import { Plus, Search, Edit, Trash2, Folder } from 'lucide-react';
-import { useInventory } from '../context/InventoryContext';
-import Modal from '../components/common/Modal';
-import Button from '../components/common/Button';
-import Input from '../components/common/Input';
-import Alert from '../components/common/Alert';
-import { Category } from '../types';
+import React, { useEffect, useState } from "react";
+import { Plus, Search, Edit, Trash2, Tag, Folder } from "lucide-react";
+import Modal from "../components/common/Modal";
+import Button from "../components/common/Button";
+import Input from "../components/common/Input";
+import Alert from "../components/common/Alert";
+import { Category } from "../types/index";
+import CategoryService from "../functions/category";
+import category from "../functions/category";
 
 const Categories: React.FC = () => {
-  const { state, dispatch } = useInventory();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [allCategories, setAllCategories] = useState<Category[] | any[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [formData, setFormData] = useState({ name: '', slug: '' });
-  const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [alert, setAlert] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+  const [formData, setFormData] = useState({ name: "", status: "active" });
 
-  const filteredCategories = state.categories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.slug.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const resetForm = () => {
+    setFormData({ name: "", status: "active" });
+    setEditingCategory(null);
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const getAllCategory = async () => {
+    try {
+      const categories: any = await CategoryService.getAllCategories();
+      setAllCategories(categories.data);
+    } catch (error) {
+      setAlert({ type: "error", message: "Failed to fetch category." });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name.trim()) {
-      setAlert({ type: 'error', message: 'Category name is required' });
+    const { name, status } = formData;
+    if (!name.trim()) {
+      setAlert({ type: "error", message: "Category name is required" });
       return;
     }
 
-    const slug = formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-');
-    
-    if (editingCategory) {
-      const updatedCategory: Category = {
-        ...editingCategory,
-        name: formData.name.trim(),
-        slug: slug
-      };
-      dispatch({ type: 'UPDATE_CATEGORY', payload: updatedCategory });
-      setAlert({ type: 'success', message: 'Category updated successfully' });
-      setIsEditModalOpen(false);
-    } else {
-      const newCategory: Category = {
-        id: Date.now().toString(),
-        name: formData.name.trim(),
-        slug: slug,
-        createdAt: new Date()
-      };
-      dispatch({ type: 'ADD_CATEGORY', payload: newCategory });
-      setAlert({ type: 'success', message: 'Category added successfully' });
+    try {
+      if (editingCategory) {
+        await CategoryService.updateCategory(editingCategory.id, name, status);
+        setAlert({ type: "success", message: "Category updated successfully" });
+      } else {
+        await CategoryService.createCategory(name, status);
+        setAlert({ type: "success", message: "Category added successfully" });
+      }
+      getAllCategory();
       setIsAddModalOpen(false);
+      setIsEditModalOpen(false);
+      resetForm();
+    } catch (error) {
+      setAlert({ type: "error", message: "Failed to save category." });
     }
-    
-    setFormData({ name: '', slug: '' });
-    setEditingCategory(null);
   };
 
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
-    setFormData({ name: category.name, slug: category.slug });
+    setFormData({ name: category.name, status: category.status });
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = (categoryId: string) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      dispatch({ type: 'DELETE_CATEGORY', payload: categoryId });
-      setAlert({ type: 'success', message: 'Category deleted successfully' });
+  const handleDelete = async (id: string | any) => {
+    if (window.confirm("Are you sure you want to delete this category?")) {
+      try {
+        await CategoryService.deleteCategory(id);
+        setAlert({ type: "success", message: "Category deleted successfully" });
+        getAllCategory();
+      } catch (error) {
+        setAlert({ type: "error", message: "Failed to delete category." });
+      }
     }
   };
 
-  const resetForm = () => {
-    setFormData({ name: '', slug: '' });
-    setEditingCategory(null);
-  };
+  useEffect(() => {
+    getAllCategory();
+  }, []);
+
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => {
+        setAlert(null);
+      }, 3000); // 3 seconds
+
+      return () => clearTimeout(timer); // Clean up
+    }
+  }, [alert]);
 
   return (
     <div className="page">
       <div className="page-header">
         <div className="page-title">
+          {/* <Tag className="page-icon" /> */}
           <Folder className="page-icon" />
           <div>
-            <h1>Categories</h1>
-            <p>Manage product categories</p>
+            <h1>Category</h1>
+            <p>Manage product category</p>
           </div>
         </div>
         <Button onClick={() => setIsAddModalOpen(true)}>
-          <Plus size={16} />
-          Add Category
+          <Plus size={16} /> Add Category
         </Button>
       </div>
 
@@ -105,10 +122,9 @@ const Categories: React.FC = () => {
               <Search className="search-input-icon" size={20} />
               <input
                 type="text"
-                placeholder="Search categories..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search category..."
                 className="search-input"
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
@@ -120,105 +136,72 @@ const Categories: React.FC = () => {
               <tr>
                 <th>Category Name</th>
                 <th>Slug</th>
-                <th>Products Count</th>
-                <th>Created Date</th>
+                <th>Status</th>
+                <th>Create Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredCategories.map((category) => {
-                const productCount = state.products.filter(p => p.categoryId === category.id).length;
-                return (
-                  <tr key={category.id}>
+              {allCategories
+                .filter((data) =>
+                  data.name.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((data) => (
+                  <tr key={data.id}>
                     <td>
-                      <div className="category-cell">
-                        <Folder size={20} className="category-icon" />
-                        <span className="category-name">{category.name}</span>
+                      <div className="brand-cell">
+                        <Tag size={20} className="brand-icon" />
+                        <span className="brand-name">{data.name}</span>
                       </div>
                     </td>
                     <td>
-                      <span className="category-slug">{category.slug}</span>
+                      <span className="brand-slug">{data.slug}</span>
                     </td>
                     <td>
-                      <span className="product-count">{productCount} products</span>
+                      <span
+                        className={`brand-status ${
+                          data.status === "active" ? "active" : "inactive"
+                        }`}
+                      >
+                        {data.status}
+                      </span>
                     </td>
                     <td>
-                      <span className="created-date">
-                        {new Date(category.createdAt).toLocaleDateString()}
+                      <span>
+                        {new Date(data.createdAt).toLocaleDateString()}
                       </span>
                     </td>
                     <td>
                       <div className="action-buttons">
-                        <button 
+                        <button
                           className="action-btn action-btn-edit"
-                          onClick={() => handleEdit(category)}
+                          onClick={() => handleEdit(data)}
                         >
                           <Edit size={16} />
                         </button>
-                        <button 
+                        <button
                           className="action-btn action-btn-delete"
-                          onClick={() => handleDelete(category.id)}
+                          onClick={() => handleDelete(data.id)}
                         >
                           <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
                   </tr>
-                );
-              })}
+                ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Add Category Modal */}
       <Modal
-        isOpen={isAddModalOpen}
+        isOpen={isAddModalOpen || isEditModalOpen}
         onClose={() => {
           setIsAddModalOpen(false);
-          resetForm();
-        }}
-        title="Add New Category"
-      >
-        <form onSubmit={handleSubmit} className="category-form">
-          <Input
-            label="Category Name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Enter category name"
-            required
-          />
-          <Input
-            label="Slug (Optional)"
-            value={formData.slug}
-            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-            placeholder="Auto-generated from name"
-            helperText="Leave empty to auto-generate from category name"
-          />
-          <div className="form-actions">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => {
-                setIsAddModalOpen(false);
-                resetForm();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">Add Category</Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Edit Category Modal */}
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => {
           setIsEditModalOpen(false);
           resetForm();
         }}
-        title="Edit Category"
+        title={editingCategory ? "Edit Category" : "Add New Category"}
       >
         <form onSubmit={handleSubmit} className="category-form">
           <Input
@@ -228,25 +211,32 @@ const Categories: React.FC = () => {
             placeholder="Enter category name"
             required
           />
-          <Input
-            label="Slug"
-            value={formData.slug}
-            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-            placeholder="category-slug"
-            required
-          />
+          <label>Status</label>
+          <select
+            className="category-select"
+            value={formData.status}
+            onChange={(e) =>
+              setFormData({ ...formData, status: e.target.value })
+            }
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
           <div className="form-actions">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => {
+                setIsAddModalOpen(false);
                 setIsEditModalOpen(false);
                 resetForm();
               }}
             >
               Cancel
             </Button>
-            <Button type="submit">Update Category</Button>
+            <Button type="submit">
+              {editingCategory ? "Update" : "Add"} category
+            </Button>
           </div>
         </form>
       </Modal>

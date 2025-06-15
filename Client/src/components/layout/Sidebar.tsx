@@ -9,7 +9,8 @@ import {
   FileText, 
   AlertTriangle, 
   Printer,
-  TrendingUp
+  TrendingUp,
+  Folders
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -17,6 +18,7 @@ const Sidebar: React.FC = () => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: Package, label: 'Products', path: '/products' },
     { icon: Folder, label: 'Categories', path: '/categories' },
+    { icon: Folders, label: 'Sub Categories', path: '/sub-categories' },
     { icon: Tag, label: 'Brands', path: '/brands' },
     { icon: BarChart3, label: 'Stock Management', path: '/stock' },
     { icon: FileText, label: 'Invoices', path: '/invoices' },

@@ -1,85 +1,121 @@
-// Updated React page with all brand CRUD functionalities fully integrated
-
 import React, { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2, Tag } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Tag, Folders } from "lucide-react";
 import Modal from "../components/common/Modal";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import Alert from "../components/common/Alert";
-import { Brand } from "../types";
-import BrandService from "../functions/brand";
+import { SubCategory, Category } from "../types/index";
+import SubCategoryService from "../functions/subCategory";
+import CategoryService from "../functions/category";
 
-const Brands: React.FC = () => {
-  const [allBrand, setAllBrand] = useState<Brand[] | any[]>([]);
+const SubCategories: React.FC = () => {
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [allSubCategories, setAllSubCategories] = useState<
+    SubCategory[] | any[]
+  >([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingBrand, setEditingBrand] = useState<Brand | any>(null);
+  const [editingSubCategory, setEditingSubCategory] = useState<
+    SubCategory | any
+  >(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [alert, setAlert] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
-  const [formData, setFormData] = useState({ name: "", status: "active" });
+  const [formData, setFormData] = useState({
+    name: "",
+    status: "active",
+    categoryId: "",
+  });
 
   const resetForm = () => {
-    setFormData({ name: "", status: "active" });
-    setEditingBrand(null);
+    setFormData({ name: "", status: "active", categoryId: "" });
+    setEditingSubCategory(null);
   };
 
-  const getAllBrands = async () => {
+  const getAllSubCategories = async () => {
     try {
-      const brands: any = await BrandService.getAllBrand();
-      setAllBrand(brands.data);
+      const subCategories: any = await SubCategoryService.getAllSubCategories();
+      setAllSubCategories(subCategories.data);
     } catch (error) {
-      setAlert({ type: "error", message: "Failed to fetch brands." });
+      setAlert({ type: "error", message: "Failed to fetch subcategories." });
+    }
+  };
+
+  const getAllCategories = async () => {
+    try {
+      const categories: any = await CategoryService.getAllCategories();
+      setAllCategories(categories.data);
+    } catch (error) {
+      setAlert({ type: "error", message: "Failed to fetch categories." });
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { name, status } = formData;
+    const { name, status, categoryId } = formData;
     if (!name.trim()) {
-      setAlert({ type: "error", message: "Brand name is required" });
+      setAlert({ type: "error", message: "Subcategory name is required" });
       return;
     }
 
     try {
-      if (editingBrand) {
-        await BrandService.updateBrand(editingBrand.id, name, status);
-        setAlert({ type: "success", message: "Brand updated successfully" });
+      if (editingSubCategory) {
+        await SubCategoryService.updateSubCategory(
+          editingSubCategory.id,
+          name,
+          status,
+          categoryId
+        );
+        setAlert({
+          type: "success",
+          message: "Subcategory updated successfully",
+        });
       } else {
-        await BrandService.createBrand(name, status);
-        setAlert({ type: "success", message: "Brand added successfully" });
+        await SubCategoryService.createSubCategory(name, status, categoryId);
+        setAlert({
+          type: "success",
+          message: "Subcategory added successfully",
+        });
       }
-      getAllBrands();
+      getAllSubCategories();
       setIsAddModalOpen(false);
       setIsEditModalOpen(false);
       resetForm();
     } catch (error) {
-      setAlert({ type: "error", message: "Failed to save brand." });
+      setAlert({ type: "error", message: "Failed to save subcategory." });
     }
   };
 
-  const handleEdit = (brand: Brand) => {
-    setEditingBrand(brand);
-    setFormData({ name: brand.name, status: brand.status });
+  const handleEdit = (subcategory: SubCategory) => {
+    setEditingSubCategory(subcategory);
+    setFormData({
+      name: subcategory.name,
+      status: subcategory.status,
+      categoryId: subcategory.categoryId,
+    });
     setIsEditModalOpen(true);
   };
 
   const handleDelete = async (id: string | any) => {
-    if (window.confirm("Are you sure you want to delete this brand?")) {
+    if (window.confirm("Are you sure you want to delete this subcategory?")) {
       try {
-        await BrandService.deleteBrand(id);
-        setAlert({ type: "success", message: "Brand deleted successfully" });
-        getAllBrands();
+        await SubCategoryService.deleteSubCategory(id);
+        setAlert({
+          type: "success",
+          message: "Subcategory deleted successfully",
+        });
+        getAllSubCategories();
       } catch (error) {
-        setAlert({ type: "error", message: "Failed to delete brand." });
+        setAlert({ type: "error", message: "Failed to delete subcategory." });
       }
     }
   };
 
   useEffect(() => {
-    getAllBrands();
+    getAllSubCategories();
+    getAllCategories();
   }, []);
 
   useEffect(() => {
@@ -96,14 +132,15 @@ const Brands: React.FC = () => {
     <div className="page">
       <div className="page-header">
         <div className="page-title">
-          <Tag className="page-icon" />
+          {/* <Tag className="page-icon" /> */}
+          <Folders className="page-icon" />
           <div>
-            <h1>Brands</h1>
-            <p>Manage product brands</p>
+            <h1>Sub Category</h1>
+            <p>Manage product subcategories</p>
           </div>
         </div>
         <Button onClick={() => setIsAddModalOpen(true)}>
-          <Plus size={16} /> Add Brand
+          <Plus size={16} /> Add Sub Category
         </Button>
       </div>
 
@@ -122,7 +159,7 @@ const Brands: React.FC = () => {
               <Search className="search-input-icon" size={20} />
               <input
                 type="text"
-                placeholder="Search brands..."
+                placeholder="Search category..."
                 className="search-input"
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -134,15 +171,16 @@ const Brands: React.FC = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Brand Name</th>
+                <th>Sub Category</th>
                 <th>Slug</th>
+                <th>Category Name</th>
                 <th>Status</th>
                 <th>Create Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {allBrand
+              {allSubCategories
                 .filter((data) =>
                   data.name.toLowerCase().includes(searchTerm.toLowerCase())
                 )
@@ -156,6 +194,12 @@ const Brands: React.FC = () => {
                     </td>
                     <td>
                       <span className="brand-slug">{data.slug}</span>
+                    </td>
+                    <td>
+                      {" "}
+                      <span className="brand-category">
+                        {data.category.name}
+                      </span>
                     </td>
                     <td>
                       <span
@@ -201,19 +245,21 @@ const Brands: React.FC = () => {
           setIsEditModalOpen(false);
           resetForm();
         }}
-        title={editingBrand ? "Edit Brand" : "Add New Brand"}
+        title={
+          editingSubCategory ? "Edit Sub Category" : "Add New Sub Category"
+        }
       >
-        <form onSubmit={handleSubmit} className="brand-form">
+        <form onSubmit={handleSubmit} className="category-form">
           <Input
-            label="Brand Name"
+            label="Sub Category Name"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Enter brand name"
+            placeholder="Enter category name"
             required
           />
           <label>Status</label>
           <select
-            className="brand-select"
+            className="category-select"
             value={formData.status}
             onChange={(e) =>
               setFormData({ ...formData, status: e.target.value })
@@ -222,6 +268,21 @@ const Brands: React.FC = () => {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
+          <label>Category</label>
+          <select
+            className="category-select"
+            value={formData.categoryId} // ✅ bind value
+            onChange={(e) =>
+              setFormData({ ...formData, categoryId: e.target.value })
+            }
+          >
+            {allCategories?.map((data) => (
+              <option key={data.id} value={data.id}>
+                {data.name}
+              </option>
+            ))}
+          </select>
+
           <div className="form-actions">
             <Button
               type="button"
@@ -235,7 +296,7 @@ const Brands: React.FC = () => {
               Cancel
             </Button>
             <Button type="submit">
-              {editingBrand ? "Update" : "Add"} Brand
+              {editingSubCategory ? "Update" : "Add"} category
             </Button>
           </div>
         </form>
@@ -244,4 +305,4 @@ const Brands: React.FC = () => {
   );
 };
 
-export default Brands;
+export default SubCategories;

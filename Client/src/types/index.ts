@@ -35,6 +35,13 @@ export interface Category {
   status: status;
 }
 
+export interface SubCategory {
+  id?: string;
+  name: string;
+  status: status;
+  categoryId: string;
+}
+
 export interface Brand {
   id?: string;
   name: string;
