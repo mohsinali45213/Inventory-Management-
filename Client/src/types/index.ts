@@ -14,21 +14,24 @@ export interface Product {
   id?: string;
   name: string;
   categoryId: string;
+  subcategory?: string; // Optional, if not used
   brandId: string;
   subcategoryId?: string;
-  status: status;
+  createdAt?: Date;
+  // status: 'active' | 'inactive'; 
+  variants: ProductVariant[];
 }
-
 export interface ProductVariant {
   id?: string;
-  productId: string;
+  productId?: string;
   size: string;
   color: string;
   price: number;
-  stock: number;
-  status: status;
+  stock_qty: number;
+  barcode?: string; 
+  // status: 'active' | 'inactive';
+  createdAt?: Date;
 }
-
 export interface Category {
   id?: string;
   name: string;

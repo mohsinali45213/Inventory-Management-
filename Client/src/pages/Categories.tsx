@@ -6,10 +6,12 @@ import Input from "../components/common/Input";
 import Alert from "../components/common/Alert";
 import { Category } from "../types/index";
 import CategoryService from "../functions/category";
-import category from "../functions/category";
+// import category from "../functions/category";
 
 const Categories: React.FC = () => {
   const [allCategories, setAllCategories] = useState<Category[] | any[]>([]);
+
+  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | any>(null);

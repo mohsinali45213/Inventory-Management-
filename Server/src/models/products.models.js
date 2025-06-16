@@ -24,7 +24,6 @@ class Product extends Model {
     });
   }
 }
-
 Product.init(
   {
     id: {

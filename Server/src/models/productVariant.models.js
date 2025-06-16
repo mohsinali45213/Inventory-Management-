@@ -43,10 +43,10 @@ const ProductVariant = sequelize.define(
       type: DataTypes.STRING(50),
       allowNull: false,
     },
-    image_url: {
-      type: DataTypes.STRING(255),
-      allowNull: true,
-    },
+    // image_url: {
+    //   type: DataTypes.STRING(255),
+    //   allowNull: true,
+    // },
   },
   { tableName: "product_variants", timestamps: true }
 );
