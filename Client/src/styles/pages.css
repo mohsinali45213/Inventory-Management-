@@ -541,6 +541,15 @@
 }
 
 /* Product form styles */
+.form-subcategory{
+  display: flex;
+  flex-direction: column;
+
+}
+.form-subcategory select{
+  padding: 13px;
+}
+
 .product-form {
   display: flex;
   flex-direction: column;

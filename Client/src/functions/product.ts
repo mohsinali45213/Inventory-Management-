@@ -99,7 +99,7 @@ const updateProductWithVariants = async (
     // 🔧 Construct request body exactly how your backend expects it
     const payload = {
       name: product.name,
-      subcategory: product.subcategory,
+      subcategory: product.subcategoryId,
       categoryId: product.categoryId,
       brandId: product.brandId,
       variants: variants.map((variant) => ({
@@ -201,13 +201,15 @@ const deleteProductWithVariants = async (productId: string): Promise<{ success: 
 };
 
 const deleteProductVariant = async (
-  productId: string,
+  // productId: string,
   variantId: string
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await fetch(`${API_URL}/products/${productId}/variants/${variantId}`, {
+    const response = await fetch(`${API_URL}/products/variants/${variantId}`, {
+      
       method: "DELETE",
     });
+    console.log(response);
 
     const result = await response.json();
 

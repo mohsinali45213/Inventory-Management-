@@ -11,12 +11,12 @@ export interface User {
 }
 
 export interface Product {
-  id?: string;
+  id: string;
   name: string;
   categoryId: string;
-  subcategory?: string; // Optional, if not used
+  // subcategory: string; // Optional, if not used
   brandId: string;
-  subcategoryId?: string;
+  subcategoryId: string;
   createdAt?: Date;
   // status: 'active' | 'inactive'; 
   variants: ProductVariant[];
