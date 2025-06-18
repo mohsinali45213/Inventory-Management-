@@ -133,7 +133,7 @@ const updateProductWithVariants = async (
 };
 
 const updateVariant = async (
-  productId: string,
+  // productId: string,
   variantId: string,
   variant: ProductVariant
 ): Promise<{ success: boolean; message: string }> => {
@@ -149,7 +149,7 @@ const updateVariant = async (
     };
 
     const response = await fetch(
-      `${API_URL}/products/${productId}/variants/${variantId}`,
+      `${API_URL}/products/variants/${variantId}`,
       {
         method: "PUT",
         headers: {

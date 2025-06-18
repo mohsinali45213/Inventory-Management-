@@ -321,6 +321,32 @@
   gap: var(--spacing-4);
 }
 
+/* // Search input and filter dropdowns */
+.filter-dropdown-container {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 1rem;
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 1.2rem;
+  border-radius: 8px;
+}
+
+.filter-select-group {
+  display: flex;
+  gap: 1rem;
+}
+
+.filter-select {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+
+
+
 .search-input-container {
   flex: 1;
   position: relative;
