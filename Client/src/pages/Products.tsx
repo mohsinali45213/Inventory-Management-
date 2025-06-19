@@ -5,7 +5,7 @@ import Modal from "../components/common/Modal";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import productService from "../functions/product";
-import { Brand, Category, Product } from "../types/index";
+import { Brand, Category, Product, ProductVariant } from "../types/index";
 import CategoryService from "../functions/category";
 import BrandService from "../functions/brand";
 import SubCategoryService from "../functions/subCategory";
@@ -28,11 +28,13 @@ const Products: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
+  const [products, setProducts] = useState<Product[]>([]); // ✅ correct
   const [categories, setAllCategories] = useState<Category[] | any[]>([]);
   const [subcategories, setSubcategories] = useState<Category[] | any[]>([]);
   const [allBrand, setAllBrand] = useState<Brand[] | any[]>([]);
   const [productName, setProductName] = useState("");
-  // const [subcategory, setSubcategory] = useState("");
+  // const [subcategory, setSubcategory] = useState("")
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
@@ -58,7 +60,7 @@ const Products: React.FC = () => {
   }, [alert]);
 
   type Variants = {
-    id: string;
+    id?: string;
     size: string;
     color: string;
     price: number;
@@ -68,7 +70,7 @@ const Products: React.FC = () => {
     { id: "", size: "", color: "", price: 0, stock_qty: 0 },
   ]);
 
-  const [products, setProducts] = useState<any[]>([]);
+  // const [products, setProducts] = useState<any[]>([]);
 
   const fetchAllProducts = async () => {
     try {
@@ -116,43 +118,52 @@ const Products: React.FC = () => {
   }, []);
 
   // Filter products based on search term and selected filters
-  const filteredProducts = products.filter((product) => {
-    const productPrices = product.variants.map((v: any) => v.price);
-    const lowest = Math.min(...productPrices);
-    const highest = Math.max(...productPrices);
+  const filteredProducts = Array.isArray(products)
+    ? products.filter((product) => {
+        const productPrices = product.variants.map((v: any) => v.price);
+        const lowest = Math.min(...productPrices);
+        const highest = Math.max(...productPrices);
 
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.subcategory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      categories
-        .find((c) => c.id === product.categoryId)
-        ?.name.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      allBrand
-        .find((b) => b.id === product.brandId)
-        ?.name.toLowerCase()
-        .includes(searchTerm.toLowerCase());
+        const matchesSearch =
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.subcategoryId
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          categories
+            .find((c) => c.id === product.categoryId)
+            ?.name.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          allBrand
+            .find((b) => b.id === product.brandId)
+            ?.name.toLowerCase()
+            .includes(searchTerm.toLowerCase());
 
-    const matchesCategory = selectedCategory
-      ? product.categoryId.toString() === selectedCategory
-      : true;
+        const matchesCategory = selectedCategory
+          ? product.categoryId.toString() === selectedCategory
+          : true;
 
-    const matchesBrand = selectedBrand
-      ? product.brandId.toString() === selectedBrand
-      : true;
+        const matchesBrand = selectedBrand
+          ? product.brandId.toString() === selectedBrand
+          : true;
 
-    const matchesMinPrice = minPrice ? lowest >= parseFloat(minPrice) : true;
-    const matchesMaxPrice = maxPrice ? highest <= parseFloat(maxPrice) : true;
+        const matchesMinPrice = minPrice
+          ? lowest >= parseFloat(minPrice)
+          : true;
+        const matchesMaxPrice = maxPrice
+          ? highest <= parseFloat(maxPrice)
+          : true;
 
-    return (
-      matchesSearch &&
-      matchesCategory &&
-      matchesBrand &&
-      matchesMinPrice &&
-      matchesMaxPrice
-    );
-  });
+        return (
+          matchesSearch &&
+          matchesCategory &&
+          matchesBrand &&
+          matchesMinPrice &&
+          matchesMaxPrice
+        );
+      })
+    : [];
 
+  // Toggle product expansion
   const toggleProductExpansion = (productId: string) => {
     const newExpanded = new Set(expandedProducts);
     newExpanded.has(productId)
@@ -161,6 +172,9 @@ const Products: React.FC = () => {
     setExpandedProducts(newExpanded);
   };
 
+  // These functions can be used in the table to display stock and price information
+  // Helper functions to calculate total stock and lowest price
+  // They are not used in the current code but can be useful for future enhancements
   const getTotalStock = (variants: any[]) => {
     return variants.reduce((sum, variant) => sum + variant.stock_qty, 0);
   };
@@ -178,15 +192,14 @@ const Products: React.FC = () => {
 
   const handleVariantChange = (
     index: number,
-    field: keyof Variants,
-    value: string | number
+    key: keyof ProductVariant,
+    value: any
   ) => {
-    const updated = [...variants];
-    updated[index] = {
-      ...updated[index],
-      [field]: value,
-    };
-    setVariants(updated);
+    setVariants((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [key]: value };
+      return updated;
+    });
   };
 
   const handleRemoveVariant = (index: number) => {
@@ -223,9 +236,9 @@ const Products: React.FC = () => {
     const result = await productService.deleteProductVariant(variantId);
 
     if (result.success) {
-      setAlert({ type: "success", message: "Variant deleted successfully." });
       // Optionally refresh the list or update state
       setVariants((prev) => prev.filter((v) => v.id !== variantId));
+      setAlert({ type: "success", message: "Variant deleted successfully." });
     } else {
       setAlert({
         type: "error",
@@ -281,31 +294,42 @@ const Products: React.FC = () => {
       } else {
         setAlert({ type: "error", message: "❌ " + response.message });
       }
-
-      if (isVariantEditMode && editingVariantIndex !== null) {
-        const variant = variants[editingVariantIndex];
-        await productService.updateVariant(variant.id, variant);
-        setAlert({ type: "success", message: "✅ Variant updated!" });
-        setIsVariantEditMode(false);
-        fetchAllProducts();
-        return;
-      }
     } catch (err) {
       console.error("❌ Failed to submit product:", err);
       setAlert({ type: "error", message: "❌ Error submitting product" });
     }
   };
 
+  // const resetForm = () => {
+  //   setProductName("");
+  //   setSelectedCategory("");
+  //   setSelectedSubcategory("");
+  //   setSelectedBrand("");
+  //   setVariants([{ id: "", size: "", color: "", price: 0, stock_qty: 0 }]);
+  //   // setIsAddModalOpen(false);
+  //   setIsEditMode(false);
+  //   setEditingProductId(null);
+  // };
   const resetForm = () => {
-    setProductName("");
-    setSelectedCategory("");
-    setSelectedSubcategory("");
-    setSelectedBrand("");
-    setVariants([{ id: "", size: "", color: "", price: 0, stock_qty: 0 }]);
-    // setIsAddModalOpen(false);
-    setIsEditMode(false);
-    setEditingProductId(null);
-  };
+  setProductName("");
+  setSelectedCategory("");
+  setSelectedSubcategory("");
+  setSelectedBrand("");
+  setVariants([{ id: "", size: "", color: "", price: 0, stock_qty: 0 }]);
+
+  // Reset edit states
+  setIsEditMode(false);
+  setEditingProductId(null);
+
+  // ✅ Also reset variant edit state
+  setIsVariantEditMode(false);
+  setEditingVariantIndex(null);
+  setSelectedProduct(null);
+
+  // Optionally close the modal
+  setIsAddModalOpen(false);
+};
+
 
   const handleEditProduct = (product: Product) => {
     // 1. Set values into input fields
@@ -331,6 +355,48 @@ const Products: React.FC = () => {
     setIsAddModalOpen(true);
   };
 
+  // Handle update variant
+  const handleUpdateVariant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingVariantIndex === null) return;
+
+    const variant = variants[editingVariantIndex];
+    try {
+      const response = await productService.updateVariant(variant.id!, variant);
+      if (response.success) {
+        setAlert({ type: "success", message: "✅ Variant updated!" });
+        setIsVariantEditMode(false);
+        setEditingVariantIndex(null);
+        fetchAllProducts();
+        setAlert({ type: "success", message: "✅ Variant updated successfully!" });
+        resetForm(); // Reset
+      } else {
+        setAlert({ type: "error", message: "❌ " + response.message });
+      }
+    } catch (err) {
+      console.error("❌ Failed to update variant:", err);
+      setAlert({ type: "error", message: "❌ Error updating variant" });
+    }
+  };
+
+  const variantList =
+    isVariantEditMode &&
+    editingVariantIndex !== null &&
+    variants[editingVariantIndex] !== undefined
+      ? [variants[editingVariantIndex]]
+      : variants;
+
+  const handleEditVariant = (product: Product, variantId: number) => {
+    setProductName(product.name);
+    setSelectedCategory(product.categoryId);
+    setSelectedSubcategory(product.subcategoryId);
+    setSelectedBrand(product.brandId);
+    setVariants(product.variants);
+    setEditingVariantIndex(variantId); // Set the index of the variant being edited
+    setIsVariantEditMode(true);
+    setIsAddModalOpen(true);
+  };
+
   return (
     <div className="page">
       {alert && (
@@ -351,8 +417,9 @@ const Products: React.FC = () => {
         </div>
         <Button
           onClick={() => {
+            // setIsEditMode(false);
             setIsAddModalOpen(true);
-            resetForm();
+            // resetForm();
           }}
         >
           <Plus size={16} />
@@ -459,9 +526,9 @@ const Products: React.FC = () => {
                         </div>
                         <div className="product-info">
                           <div className="product-name">{product.name}</div>
-                          {product.subcategory && (
+                          {product.subcategoryId && (
                             <div className="product-subcategory">
-                              {product.subcategory}
+                              {product.subcategoryId}
                             </div>
                           )}
                         </div>
@@ -564,11 +631,27 @@ const Products: React.FC = () => {
                                   </div>
                                 </div>
                                 <div className="variant-actions">
+                                
                                   <button
                                     className="variant-action-btn variant-action-edit"
-                                   >
+                                    onClick={() => {
+                                      const variantIndex =
+                                        product.variants.findIndex(
+                                          (v) => v.id === variant.id
+                                        );
+
+                                      setSelectedProduct(product); // Set the current product
+                                      setVariants(product.variants); // Populate all variants
+                                      setEditingVariantIndex(variantIndex); // ✅ Set correct index
+                                      handleEditVariant(product, variantIndex); // ✅ Pass index, not id
+
+                                      setIsVariantEditMode(true); // Enable variant edit mode
+                                      setIsAddModalOpen(true); // Open the modal
+                                    }}
+                                  >
                                     <Edit size={14} />
                                   </button>
+
                                   <button
                                     className="variant-action-btn variant-action-delete"
                                     onClick={() =>
@@ -599,6 +682,7 @@ const Products: React.FC = () => {
           setIsEditMode(false);
           setIsAddModalOpen(false);
           setIsVariantEditMode(false);
+          resetForm(); // Reset form state
         }}
         // title="Add New Product"
         // title={isEditMode ? "Edit Product" : "Add New Product"}
@@ -611,7 +695,10 @@ const Products: React.FC = () => {
         }
         size="lg"
       >
-        <form className="product-form" onSubmit={handleAddProduct}>
+        <form
+          className="product-form"
+          onSubmit={isVariantEditMode ? handleUpdateVariant : handleAddProduct}
+        >
           <div className="form-row">
             <Input
               label="Product Name"
@@ -686,96 +773,113 @@ const Products: React.FC = () => {
 
           <div className="variants-section">
             <h4>Product Variants</h4>
-            {(isVariantEditMode && editingVariantIndex !== null
-              ? [variants[editingVariantIndex]]
-              : variants
-            ).map((variant, index) => (
-              <div
-                key={index}
-                className="variant-form border p-3 rounded-md shadow mb-4"
-              >
-                <div className="form-row">
-                  <Input
-                    label="Size"
-                    placeholder="e.g., M, L, XL"
-                    value={variant.size}
-                    onChange={(e) =>
-                      handleVariantChange(index, "size", e.target.value)
-                    }
-                  />
-                  <Input
-                    label="Color"
-                    placeholder="e.g., Black, White"
-                    value={variant.color}
-                    onChange={(e) =>
-                      handleVariantChange(index, "color", e.target.value)
-                    }
-                  />
-                  <Input
-                    label="Price"
-                    type="number"
-                    placeholder="0"
-                    value={variant.price}
-                    onChange={(e) =>
-                      handleVariantChange(
-                        index,
-                        "price",
-                        Number(e.target.value)
-                      )
-                    }
-                  />
-                  <Input
-                    label="Stock"
-                    type="number"
-                    placeholder="0"
-                    value={variant.stock_qty}
-                    onChange={(e) =>
-                      handleVariantChange(
-                        index,
-                        "stock_qty",
-                        Number(e.target.value)
-                      )
-                    }
-                  />
-                </div>
-                {variants.length > 1 && (
-                  <div className="text-right mt-2">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleRemoveVariant(index)}
-                    >
-                      Remove Variant
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddVariant}
-            >
-              Add Variant
-            </Button>
+            {variantList.map((variant, index) => {
+              const isEditable = isVariantEditMode ? index === 0 : true; // Only first variant editable when in editVariant mode
+
+              return (
+                <div
+                  key={index}
+                  className="variant-form border p-3 rounded-md shadow mb-4"
+                >
+                  <div className="form-row">
+                    <Input
+                      label="Size"
+                      value={variant.size}
+                      onChange={(e) =>
+                        handleVariantChange(
+                          isVariantEditMode ? editingVariantIndex! : index,
+                          "size",
+                          e.target.value
+                        )
+                      }
+                      disabled={!isEditable}
+                    />
+                    <Input
+                      label="Color"
+                      value={variant.color}
+                      onChange={(e) =>
+                        handleVariantChange(
+                          isVariantEditMode ? editingVariantIndex! : index,
+                          "color",
+                          e.target.value
+                        )
+                      }
+                      disabled={!isEditable}
+                    />
+                    <Input
+                      label="Price"
+                      type="number"
+                      value={variant.price}
+                      onChange={(e) =>
+                        handleVariantChange(
+                          isVariantEditMode ? editingVariantIndex! : index,
+                          "price",
+                          Number(e.target.value)
+                        )
+                      }
+                      disabled={!isEditable}
+                    />
+                    <Input
+                      label="Stock"
+                      type="number"
+                      value={variant.stock_qty}
+                      onChange={(e) =>
+                        handleVariantChange(
+                          isVariantEditMode ? editingVariantIndex! : index,
+                          "stock_qty",
+                          Number(e.target.value)
+                        )
+                      }
+                      disabled={!isEditable}
+                    />
+
+                    {!isVariantEditMode && variants.length > 1 && (
+                      <div className="text-right mt-2">
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemoveVariant(index)}
+                        >
+                          Remove Variant
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Add Variant Button – disabled in Variant Edit Mode */}
+            {/* {!isVariantEditMode && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddVariant}
+              >
+                Add Variant
+              </Button>
+            )} */}
+            {!isVariantEditMode && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddVariant}
+                >
+                  Add Variant
+                </Button>
+              </>
+            )}
           </div>
 
-          <div className="form-actions">
-            {/* <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setIsEditMode(false);
-                setIsAddModalOpen(false);
-                // resetForm(); // Reset form state
-              }}
-            >
-              Cancel
-            </Button> */}
 
+        
+
+          <div className="form-actions">
             <Button
               type="button"
               variant="outline"
@@ -784,6 +888,7 @@ const Products: React.FC = () => {
                 setIsAddModalOpen(false);
                 setIsVariantEditMode(false);
                 setEditingVariantIndex(null);
+                resetForm(); // Reset form state
               }}
             >
               Cancel
@@ -791,13 +896,12 @@ const Products: React.FC = () => {
 
             <Button type="submit">
               {/* {isEditMode ? "Update Product" : "Add Product"} */}
-              <Button type="submit">
-                {isVariantEditMode
-                  ? "Update Variant"
-                  : isEditMode
-                  ? "Update Product"
-                  : "Add Product"}
-              </Button>
+
+              {isVariantEditMode
+                ? "Update Variant"
+                : isEditMode
+                ? "Update Product"
+                : "Add Product"}
             </Button>
           </div>
         </form>
