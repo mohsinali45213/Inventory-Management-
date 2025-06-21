@@ -38,7 +38,7 @@ const AppRoutes: React.FC = () => {
         <Route path="brands" element={<Brands />} />
         <Route path="stock" element={<StockManagement />} />
         <Route path="invoices" element={<Invoices />} />
-        <Route path="low-stock" element={<LowStock />} />
+        {/* <Route path="low-stock" element={<LowStock />} /> */}
         <Route path="barcode" element={<Barcode />} />
         <Route path="reports" element={<Reports />} />
       </Route>

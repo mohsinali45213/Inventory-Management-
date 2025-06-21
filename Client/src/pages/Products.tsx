@@ -10,10 +10,19 @@ import CategoryService from "../functions/category";
 import BrandService from "../functions/brand";
 import SubCategoryService from "../functions/subCategory";
 import Alert from "../components/common/Alert";
+import { useModal } from "../context/ModalContext";
 // import deleteProductWithVariants  from "../functions/product"; // Adjust the import path as necessary
+
+// interface ProductsProps {
+//   triggerAddModal: boolean;
+//   setTriggerAddModal: React.Dispatch<React.SetStateAction<boolean>>;
+// }
 
 const Products: React.FC = () => {
   // const { state } = useInventory();
+
+  const { triggerAddModal, setTriggerAddModal } = useModal();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(
@@ -50,6 +59,13 @@ const Products: React.FC = () => {
   } | null>(null);
 
   useEffect(() => {
+    if (triggerAddModal) {
+      setIsAddModalOpen(true);
+      if (setTriggerAddModal) setTriggerAddModal(false); // reset
+    }
+  }, [triggerAddModal]);
+
+  useEffect(() => {
     if (alert) {
       const timer = setTimeout(() => {
         setAlert(null);
@@ -63,11 +79,11 @@ const Products: React.FC = () => {
     id?: string;
     size: string;
     color: string;
-    price: number;
-    stock_qty: number;
+    price: any;
+    stock_qty: any;
   };
   const [variants, setVariants] = useState<Variants[]>([
-    { id: "", size: "", color: "", price: 0, stock_qty: 0 },
+    { id: "", size: "", color: "", price: "", stock_qty: "" },
   ]);
 
   // const [products, setProducts] = useState<any[]>([]);
@@ -186,7 +202,7 @@ const Products: React.FC = () => {
   const handleAddVariant = () => {
     setVariants([
       ...variants,
-      { id: "", size: "", color: "", price: 0, stock_qty: 0 },
+      { id: "", size: "", color: "", price: "", stock_qty: "" },
     ]);
   };
 
@@ -265,8 +281,6 @@ const Products: React.FC = () => {
         stock_qty: Number(v.stock_qty),
       })),
     };
-    console.log("Payload for product submission:", payload);
-
     try {
       let response: any;
 
@@ -300,36 +314,25 @@ const Products: React.FC = () => {
     }
   };
 
-  // const resetForm = () => {
-  //   setProductName("");
-  //   setSelectedCategory("");
-  //   setSelectedSubcategory("");
-  //   setSelectedBrand("");
-  //   setVariants([{ id: "", size: "", color: "", price: 0, stock_qty: 0 }]);
-  //   // setIsAddModalOpen(false);
-  //   setIsEditMode(false);
-  //   setEditingProductId(null);
-  // };
   const resetForm = () => {
-  setProductName("");
-  setSelectedCategory("");
-  setSelectedSubcategory("");
-  setSelectedBrand("");
-  setVariants([{ id: "", size: "", color: "", price: 0, stock_qty: 0 }]);
+    setProductName("");
+    setSelectedCategory("");
+    setSelectedSubcategory("");
+    setSelectedBrand("");
+    setVariants([{ id: "", size: "", color: "", price: 0, stock_qty: 0 }]);
 
-  // Reset edit states
-  setIsEditMode(false);
-  setEditingProductId(null);
+    // Reset edit states
+    setIsEditMode(false);
+    setEditingProductId(null);
 
-  // ✅ Also reset variant edit state
-  setIsVariantEditMode(false);
-  setEditingVariantIndex(null);
-  setSelectedProduct(null);
+    // ✅ Also reset variant edit state
+    setIsVariantEditMode(false);
+    setEditingVariantIndex(null);
+    setSelectedProduct(null);
 
-  // Optionally close the modal
-  setIsAddModalOpen(false);
-};
-
+    // Optionally close the modal
+    setIsAddModalOpen(false);
+  };
 
   const handleEditProduct = (product: Product) => {
     // 1. Set values into input fields
@@ -368,7 +371,10 @@ const Products: React.FC = () => {
         setIsVariantEditMode(false);
         setEditingVariantIndex(null);
         fetchAllProducts();
-        setAlert({ type: "success", message: "✅ Variant updated successfully!" });
+        setAlert({
+          type: "success",
+          message: "✅ Variant updated successfully!",
+        });
         resetForm(); // Reset
       } else {
         setAlert({ type: "error", message: "❌ " + response.message });
@@ -440,10 +446,7 @@ const Products: React.FC = () => {
                 className="search-input"
               />
             </div>
-            {/* <Button variant="outline">
-              <Filter size={16} />
-              Filters
-            </Button> */}
+
             <Button
               variant="outline"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -631,7 +634,6 @@ const Products: React.FC = () => {
                                   </div>
                                 </div>
                                 <div className="variant-actions">
-                                
                                   <button
                                     className="variant-action-btn variant-action-edit"
                                     onClick={() => {
@@ -676,7 +678,6 @@ const Products: React.FC = () => {
       </div>
 
       <Modal
-        // isOpen={isEditMode || isAddModalOpen}
         isOpen={isEditMode || isAddModalOpen || isVariantEditMode}
         onClose={() => {
           setIsEditMode(false);
@@ -684,8 +685,6 @@ const Products: React.FC = () => {
           setIsVariantEditMode(false);
           resetForm(); // Reset form state
         }}
-        // title="Add New Product"
-        // title={isEditMode ? "Edit Product" : "Add New Product"}
         title={
           isVariantEditMode
             ? "Edit Variant"
@@ -786,6 +785,8 @@ const Products: React.FC = () => {
                     <Input
                       label="Size"
                       value={variant.size}
+                      required
+                      placeholder="Enter size"
                       onChange={(e) =>
                         handleVariantChange(
                           isVariantEditMode ? editingVariantIndex! : index,
@@ -798,6 +799,8 @@ const Products: React.FC = () => {
                     <Input
                       label="Color"
                       value={variant.color}
+                      required
+                      placeholder="Enter color"
                       onChange={(e) =>
                         handleVariantChange(
                           isVariantEditMode ? editingVariantIndex! : index,
@@ -810,12 +813,14 @@ const Products: React.FC = () => {
                     <Input
                       label="Price"
                       type="number"
+                      required
+                      placeholder="Enter price"
                       value={variant.price}
                       onChange={(e) =>
                         handleVariantChange(
                           isVariantEditMode ? editingVariantIndex! : index,
                           "price",
-                          Number(e.target.value)
+                          e.target.value === "" ? "" : Number(e.target.value)
                         )
                       }
                       disabled={!isEditable}
@@ -823,12 +828,14 @@ const Products: React.FC = () => {
                     <Input
                       label="Stock"
                       type="number"
-                      value={variant.stock_qty}
+                      required
+                      placeholder="Enter stock quantity"
+                      value={variant.stock_qty === "" ? "" : variant.stock_qty}
                       onChange={(e) =>
                         handleVariantChange(
                           isVariantEditMode ? editingVariantIndex! : index,
                           "stock_qty",
-                          Number(e.target.value)
+                          e.target.value === "" ? "" : Number(e.target.value)
                         )
                       }
                       disabled={!isEditable}
@@ -851,17 +858,6 @@ const Products: React.FC = () => {
               );
             })}
 
-            {/* Add Variant Button – disabled in Variant Edit Mode */}
-            {/* {!isVariantEditMode && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddVariant}
-              >
-                Add Variant
-              </Button>
-            )} */}
             {!isVariantEditMode && (
               <>
                 <Button
@@ -875,9 +871,6 @@ const Products: React.FC = () => {
               </>
             )}
           </div>
-
-
-        
 
           <div className="form-actions">
             <Button

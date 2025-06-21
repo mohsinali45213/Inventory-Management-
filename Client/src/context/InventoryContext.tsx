@@ -5,6 +5,7 @@ import { generateMockData } from '../utils/mockData';
 interface InventoryState {
   products: Product[];
   categories: Category[];
+  subcategories: Category[]; // Assuming subcategories are also categories
   brands: Brand[];
   invoices: Invoice[];
   stats: DashboardStats;
@@ -30,6 +31,7 @@ type InventoryAction =
 const initialState: InventoryState = {
   products: [],
   categories: [],
+  subcategories: [],
   brands: [],
   invoices: [],
   stats: {
@@ -142,16 +144,16 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     const inventoryValue = state.products.reduce((sum, product) => {
       return sum + product.variants.reduce((variantSum, variant) => 
-        variantSum + (variant.price * variant.stock), 0
+        variantSum + (variant.price * variant.stock_qty), 0
       );
     }, 0);
     
     const outOfStockCount = state.products.reduce((count, product) => {
-      return count + product.variants.filter(variant => variant.stock === 0).length;
+      return count + product.variants.filter(variant => variant.stock_qty === 0).length;
     }, 0);
     
     const lowStockCount = state.products.reduce((count, product) => {
-      return count + product.variants.filter(variant => variant.stock > 0 && variant.stock <= 10).length;
+      return count + product.variants.filter(variant => variant.stock_qty > 0 && variant.stock_qty <= 10).length;
     }, 0);
 
     const stats: DashboardStats = {
