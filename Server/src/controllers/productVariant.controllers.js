@@ -1,5 +1,8 @@
 import ProductVariant from "../models/productVariant.models.js";
 import Product from "../models/products.models.js";
+import Category  from "../models/category.models.js"
+import SubCategory from "../models/subCategory.modules.js";
+import Brand from "../models/brand.models.js";
 import slugify from "../utils/slugify.js";
 import { generateBarcode } from "../utils/barcode.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
@@ -8,7 +11,17 @@ import uploadOnCloudinary from "../utils/cloudinary.js";
 export const getAllProductVariants = async (req, res) => {
   try {
     const variants = await ProductVariant.findAll({
-      include: [{ model: Product, as: "product" }],
+      include: [
+        {
+          model: Product,
+          as: "product",
+          include: [
+            { model: Category, as: "category" },
+            { model: SubCategory, as: "subCategory" },
+            { model: Brand, as: "brand" },
+          ],
+        },
+      ],
     });
 
     res.status(200).json({
@@ -59,8 +72,7 @@ export const getProductVariantById = async (req, res) => {
 export const updateProductVariant = async (req, res) => {
   try {
     const { id } = req.params;
-    const { productId, size, color, stock_qty, price, slug } =
-      req.body;
+    const { productId, size, color, stock_qty, price, slug } = req.body;
 
     const variant = await ProductVariant.findByPk(id);
 

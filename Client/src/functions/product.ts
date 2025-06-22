@@ -230,13 +230,35 @@ const deleteProductVariant = async (
   }
 };
 
-const productService = {      
+const getAllVariants = async (): Promise<ProductVariant[]> => {
+  try {
+    const response = await fetch(`${API_URL}/product-variants`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "Failed to fetch product variants.");
+    }
+
+    return result.data; // ✅ This is the array of product objects
+  } catch (error: any) {
+    console.error("❌ Error fetching product variants:", error);
+    throw new Error(error?.message || "Something went wrong");
+  }
+};
+const ProductService = {      
   createProductWithVariants,
   getAllProducts,
   getProductById,
   updateProductWithVariants,
   updateVariant,
   deleteProductWithVariants,
-  deleteProductVariant
+  deleteProductVariant,
+  getAllVariants
 };
-export default productService;
+export default ProductService;

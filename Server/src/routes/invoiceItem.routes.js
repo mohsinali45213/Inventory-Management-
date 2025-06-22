@@ -1,18 +1,9 @@
-import express from "express";
-import {
-  createInvoiceItem,
-  getAllInvoiceItems,
-  getInvoiceItemById,
-  updateInvoiceItem,
-  deleteInvoiceItem,
-} from "../controllers/invoiceItem.controllers.js";
-
-const invoiceItemRouter = express.Router();
-
+import {createInvoiceItem,deleteInvoiceItem,getAllInvoiceItems,getInvoiceItemsByInvoiceId} from "../controllers/invoiceItem.controllers.js";
+import { Router } from "express";
+const invoiceItemRouter = Router();
 invoiceItemRouter.post("/", createInvoiceItem);
 invoiceItemRouter.get("/", getAllInvoiceItems);
-invoiceItemRouter.get("/:id", getInvoiceItemById);
-invoiceItemRouter.put("/:id", updateInvoiceItem);
+invoiceItemRouter.get("/:invoiceId", getInvoiceItemsByInvoiceId);
 invoiceItemRouter.delete("/:id", deleteInvoiceItem);
 
 export default invoiceItemRouter;

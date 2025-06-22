@@ -15,6 +15,8 @@ import productVariantRouter from "./routes/productVariant.routes.js";
 import subCategoryRouter from "./routes/subCategory.routes.js";
 import userRouter from "./routes/users.routes.js";
 import config from "./config/config.js";
+import invoiceDraftRouter from "./routes/invoicedraft.routes.js";
+import invoiceDraftItemRouter from "./routes/invoicedraftitem.routes.js";
 
 dotenv.config({ path: "../.env" });
 
@@ -29,7 +31,9 @@ app.use("/api/v1/category", categoryRouter);
 app.use("/api/v1/customers", customerRouter);
 app.use("/api/v1/invoices", invoiceRouter);
 app.use("/api/v1/invoice-items", invoiceItemRouter);
-app.use("/api/v1/products", productRouter); 
+app.use("/api/v1/invoice-drafts", invoiceDraftRouter);
+app.use("/api/v1/invoice-draft-items", invoiceDraftItemRouter);
+app.use("/api/v1/products", productRouter);
 app.use("/api/v1/product-variants", productVariantRouter);
 app.use("/api/v1/subcategory", subCategoryRouter);
 app.use("/api/v1/users", userRouter); 

@@ -1,38 +1,88 @@
-import React, { useState } from 'react';
-import { Plus, Search, Filter, Eye, Printer, FileText, Calendar } from 'lucide-react';
-import { useInventory } from '../context/InventoryContext';
-import Modal from '../components/common/Modal';
-import Button from '../components/common/Button';
-import Input from '../components/common/Input';
-import Alert from '../components/common/Alert';
-import { Invoice, InvoiceItem } from '../types';
+import React, { useEffect, useState } from "react";
+import {
+  Plus,
+  Search,
+  Filter,
+  Eye,
+  Printer,
+  FileText,
+  Calendar,
+} from "lucide-react";
+import { useInventory } from "../context/InventoryContext";
+import Modal from "../components/common/Modal";
+import Button from "../components/common/Button";
+import Input from "../components/common/Input";
+import Alert from "../components/common/Alert";
+import { Invoice, InvoiceItem } from "../types";
+import invoiceService from "../functions/invoice";
 
 const Invoices: React.FC = () => {
   const { state, dispatch } = useInventory();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [getInvoices, setGetAllInvoices] = useState<Invoice[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState<
+    "all" | "today" | "week" | "month"
+  >("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [alert, setAlert] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  // Alert state for timeInterval
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => setAlert(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert]);
+
+  // getAllInvoices function to fetch all invoices
+  // const getAllInvoices = () => {
+  //   invoiceService.getAllInvoices()
+  //     .then(invoices => {
+  //       dispatch({ type: 'SET_INVOICES', payload: invoices });
+  //       console.log('invoices fetched successfully:', invoices);
+
+  //     })
+  //     .catch(error => {
+  //       setAlert({ type: 'error', message: error.message });
+  //     });
+  // };
+
+  const getAllInvoices = async () => {
+    try {
+      const invoices: any = await invoiceService.getAllInvoices();
+      setGetAllInvoices(invoices.data);
+      console.log("invoices fetched successfully:", invoices);
+    } catch (error) {
+      setAlert({ type: "error", message: "Failed to fetch invoices." });
+    }
+  };
+
+  useEffect(() => {
+    getAllInvoices();
+  }, []);
 
   // Invoice creation form state
   const [invoiceForm, setInvoiceForm] = useState({
-    customerName: '',
+    customerName: "",
     items: [] as InvoiceItem[],
-    paymentMode: 'cash' as 'cash' | 'card' | 'upi' | 'cheque',
+    paymentMode: "cash" as "cash" | "card" | "upi" | "cheque",
     discount: 0,
-    tax: 18
+    tax: 18,
   });
 
   const [itemForm, setItemForm] = useState({
-    productId: '',
-    variantId: '',
-    quantity: 1
+    productId: "",
+    variantId: "",
+    quantity: 1,
   });
 
-  const filteredInvoices = state.invoices.filter(invoice => {
-    const matchesSearch = 
+  const filteredInvoices = state.invoices.filter((invoice) => {
+    const matchesSearch =
       invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.paymentMode.toLowerCase().includes(searchTerm.toLowerCase());
@@ -42,31 +92,38 @@ const Invoices: React.FC = () => {
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const matchesDate = 
-      dateFilter === 'all' ||
-      (dateFilter === 'today' && invoiceDate.toDateString() === today.toDateString()) ||
-      (dateFilter === 'week' && invoiceDate >= weekAgo) ||
-      (dateFilter === 'month' && invoiceDate >= monthAgo);
+    const matchesDate =
+      dateFilter === "all" ||
+      (dateFilter === "today" &&
+        invoiceDate.toDateString() === today.toDateString()) ||
+      (dateFilter === "week" && invoiceDate >= weekAgo) ||
+      (dateFilter === "month" && invoiceDate >= monthAgo);
 
     return matchesSearch && matchesDate;
   });
 
   const handleAddItem = () => {
     if (!itemForm.productId || !itemForm.variantId) {
-      setAlert({ type: 'error', message: 'Please select a product and variant' });
+      setAlert({
+        type: "error",
+        message: "Please select a product and variant",
+      });
       return;
     }
 
-    const product = state.products.find(p => p.id === itemForm.productId);
-    const variant = product?.variants.find(v => v.id === itemForm.variantId);
+    const product = state.products.find((p) => p.id === itemForm.productId);
+    const variant = product?.variants.find((v) => v.id === itemForm.variantId);
 
     if (!product || !variant) {
-      setAlert({ type: 'error', message: 'Invalid product or variant selected' });
+      setAlert({
+        type: "error",
+        message: "Invalid product or variant selected",
+      });
       return;
     }
 
     if (variant.stock < itemForm.quantity) {
-      setAlert({ type: 'error', message: 'Insufficient stock available' });
+      setAlert({ type: "error", message: "Insufficient stock available" });
       return;
     }
 
@@ -79,26 +136,29 @@ const Invoices: React.FC = () => {
       color: variant.color,
       quantity: itemForm.quantity,
       unitPrice: variant.price,
-      total: variant.price * itemForm.quantity
+      total: variant.price * itemForm.quantity,
     };
 
-    setInvoiceForm(prev => ({
+    setInvoiceForm((prev) => ({
       ...prev,
-      items: [...prev.items, newItem]
+      items: [...prev.items, newItem],
     }));
 
-    setItemForm({ productId: '', variantId: '', quantity: 1 });
+    setItemForm({ productId: "", variantId: "", quantity: 1 });
   };
 
   const handleRemoveItem = (itemId: string) => {
-    setInvoiceForm(prev => ({
+    setInvoiceForm((prev) => ({
       ...prev,
-      items: prev.items.filter(item => item.id !== itemId)
+      items: prev.items.filter((item) => item.id !== itemId),
     }));
   };
 
   const calculateTotals = () => {
-    const subtotal = invoiceForm.items.reduce((sum, item) => sum + item.total, 0);
+    const subtotal = invoiceForm.items.reduce(
+      (sum, item) => sum + item.total,
+      0
+    );
     const discountAmount = (subtotal * invoiceForm.discount) / 100;
     const taxableAmount = subtotal - discountAmount;
     const taxAmount = (taxableAmount * invoiceForm.tax) / 100;
@@ -111,7 +171,10 @@ const Invoices: React.FC = () => {
     e.preventDefault();
 
     if (invoiceForm.items.length === 0) {
-      setAlert({ type: 'error', message: 'Please add at least one item to the invoice' });
+      setAlert({
+        type: "error",
+        message: "Please add at least one item to the invoice",
+      });
       return;
     }
 
@@ -119,7 +182,9 @@ const Invoices: React.FC = () => {
 
     const newInvoice: Invoice = {
       id: Date.now().toString(),
-      invoiceNumber: `INV-${new Date().getFullYear()}-${String(state.invoices.length + 1).padStart(3, '0')}`,
+      invoiceNumber: `INV-${new Date().getFullYear()}-${String(
+        state.invoices.length + 1
+      ).padStart(3, "0")}`,
       customerName: invoiceForm.customerName || undefined,
       items: invoiceForm.items,
       subtotal,
@@ -128,44 +193,44 @@ const Invoices: React.FC = () => {
       total,
       paymentMode: invoiceForm.paymentMode,
       createdAt: new Date(),
-      status: 'paid'
+      status: "paid",
     };
 
     // Update stock for each item
-    invoiceForm.items.forEach(item => {
-      const product = state.products.find(p => p.id === item.productId);
+    invoiceForm.items.forEach((item) => {
+      const product = state.products.find((p) => p.id === item.productId);
       if (product) {
         const updatedProduct = {
           ...product,
-          variants: product.variants.map(v => 
-            v.id === item.variantId 
+          variants: product.variants.map((v) =>
+            v.id === item.variantId
               ? { ...v, stock: v.stock - item.quantity }
               : v
-          )
+          ),
         };
-        dispatch({ type: 'UPDATE_PRODUCT', payload: updatedProduct });
+        dispatch({ type: "UPDATE_PRODUCT", payload: updatedProduct });
       }
     });
 
-    dispatch({ type: 'ADD_INVOICE', payload: newInvoice });
-    setAlert({ type: 'success', message: 'Invoice created successfully' });
+    dispatch({ type: "ADD_INVOICE", payload: newInvoice });
+    setAlert({ type: "success", message: "Invoice created successfully" });
     setIsCreateModalOpen(false);
     resetInvoiceForm();
   };
 
   const resetInvoiceForm = () => {
     setInvoiceForm({
-      customerName: '',
+      customerName: "",
       items: [],
-      paymentMode: 'cash',
+      paymentMode: "cash",
       discount: 0,
-      tax: 18
+      tax: 18,
     });
-    setItemForm({ productId: '', variantId: '', quantity: 1 });
+    setItemForm({ productId: "", variantId: "", quantity: 1 });
   };
 
   const handlePrintInvoice = (invoice: Invoice) => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
     const printContent = `
@@ -192,8 +257,14 @@ const Invoices: React.FC = () => {
         
         <div class="invoice-details">
           <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
-          <p><strong>Date:</strong> ${new Date(invoice.createdAt).toLocaleDateString()}</p>
-          ${invoice.customerName ? `<p><strong>Customer:</strong> ${invoice.customerName}</p>` : ''}
+          <p><strong>Date:</strong> ${new Date(
+            invoice.createdAt
+          ).toLocaleDateString()}</p>
+          ${
+            invoice.customerName
+              ? `<p><strong>Customer:</strong> ${invoice.customerName}</p>`
+              : ""
+          }
           <p><strong>Payment Mode:</strong> ${invoice.paymentMode.toUpperCase()}</p>
         </div>
 
@@ -209,7 +280,9 @@ const Invoices: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            ${invoice.items.map(item => `
+            ${invoice.items
+              .map(
+                (item) => `
               <tr>
                 <td>${item.productName}</td>
                 <td>${item.size}</td>
@@ -218,13 +291,19 @@ const Invoices: React.FC = () => {
                 <td>₹${item.unitPrice.toLocaleString()}</td>
                 <td>₹${item.total.toLocaleString()}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join("")}
           </tbody>
         </table>
 
         <div class="totals">
           <p>Subtotal: ₹${invoice.subtotal.toLocaleString()}</p>
-          ${invoice.discount > 0 ? `<p>Discount: -₹${invoice.discount.toLocaleString()}</p>` : ''}
+          ${
+            invoice.discount > 0
+              ? `<p>Discount: -₹${invoice.discount.toLocaleString()}</p>`
+              : ""
+          }
           <p>Tax: ₹${invoice.tax.toLocaleString()}</p>
           <p class="total-row">Total: ₹${invoice.total.toLocaleString()}</p>
         </div>
@@ -245,7 +324,9 @@ const Invoices: React.FC = () => {
     printWindow.document.close();
   };
 
-  const selectedProduct = state.products.find(p => p.id === itemForm.productId);
+  const selectedProduct = state.products.find(
+    (p) => p.id === itemForm.productId
+  );
   const { subtotal, discountAmount, taxAmount, total } = calculateTotals();
 
   return (
@@ -287,30 +368,30 @@ const Invoices: React.FC = () => {
             </div>
             <div className="filter-buttons">
               <Button
-                variant={dateFilter === 'all' ? 'primary' : 'outline'}
+                variant={dateFilter === "all" ? "primary" : "outline"}
                 size="sm"
-                onClick={() => setDateFilter('all')}
+                onClick={() => setDateFilter("all")}
               >
                 All Time
               </Button>
               <Button
-                variant={dateFilter === 'today' ? 'primary' : 'outline'}
+                variant={dateFilter === "today" ? "primary" : "outline"}
                 size="sm"
-                onClick={() => setDateFilter('today')}
+                onClick={() => setDateFilter("today")}
               >
                 Today
               </Button>
               <Button
-                variant={dateFilter === 'week' ? 'primary' : 'outline'}
+                variant={dateFilter === "week" ? "primary" : "outline"}
                 size="sm"
-                onClick={() => setDateFilter('week')}
+                onClick={() => setDateFilter("week")}
               >
                 This Week
               </Button>
               <Button
-                variant={dateFilter === 'month' ? 'primary' : 'outline'}
+                variant={dateFilter === "month" ? "primary" : "outline"}
                 size="sm"
-                onClick={() => setDateFilter('month')}
+                onClick={() => setDateFilter("month")}
               >
                 This Month
               </Button>
@@ -336,11 +417,13 @@ const Invoices: React.FC = () => {
               {filteredInvoices.map((invoice) => (
                 <tr key={invoice.id}>
                   <td>
-                    <span className="invoice-number">{invoice.invoiceNumber}</span>
+                    <span className="invoice-number">
+                      {invoice.invoiceNumber}
+                    </span>
                   </td>
                   <td>
                     <span className="customer-name">
-                      {invoice.customerName || 'Walk-in Customer'}
+                      {invoice.customerName || "Walk-in Customer"}
                     </span>
                   </td>
                   <td>
@@ -349,13 +432,19 @@ const Invoices: React.FC = () => {
                     </span>
                   </td>
                   <td>
-                    <span className="items-count">{invoice.items.length} items</span>
+                    <span className="items-count">
+                      {invoice.items.length} items
+                    </span>
                   </td>
                   <td>
-                    <span className="total-amount">₹{invoice.total.toLocaleString()}</span>
+                    <span className="total-amount">
+                      ₹{invoice.total.toLocaleString()}
+                    </span>
                   </td>
                   <td>
-                    <span className={`payment-mode payment-mode-${invoice.paymentMode}`}>
+                    <span
+                      className={`payment-mode payment-mode-${invoice.paymentMode}`}
+                    >
                       {invoice.paymentMode.toUpperCase()}
                     </span>
                   </td>
@@ -366,7 +455,7 @@ const Invoices: React.FC = () => {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button 
+                      <button
                         className="action-btn action-btn-view"
                         onClick={() => {
                           setSelectedInvoice(invoice);
@@ -375,7 +464,7 @@ const Invoices: React.FC = () => {
                       >
                         <Eye size={16} />
                       </button>
-                      <button 
+                      <button
                         className="action-btn action-btn-print"
                         onClick={() => handlePrintInvoice(invoice)}
                       >
@@ -405,18 +494,29 @@ const Invoices: React.FC = () => {
             <Input
               label="Customer Name (Optional)"
               value={invoiceForm.customerName}
-              onChange={(e) => setInvoiceForm(prev => ({ ...prev, customerName: e.target.value }))}
+              onChange={(e) =>
+                setInvoiceForm((prev) => ({
+                  ...prev,
+                  customerName: e.target.value,
+                }))
+              }
               placeholder="Enter customer name"
             />
             <div className="form-group">
               <label className="form-label">Payment Mode</label>
-              <select 
+              <select
                 className="form-select"
                 value={invoiceForm.paymentMode}
-                onChange={(e) => setInvoiceForm(prev => ({ 
-                  ...prev, 
-                  paymentMode: e.target.value as 'cash' | 'card' | 'upi' | 'cheque'
-                }))}
+                onChange={(e) =>
+                  setInvoiceForm((prev) => ({
+                    ...prev,
+                    paymentMode: e.target.value as
+                      | "cash"
+                      | "card"
+                      | "upi"
+                      | "cheque",
+                  }))
+                }
               >
                 <option value="cash">Cash</option>
                 <option value="card">Card</option>
@@ -431,49 +531,62 @@ const Invoices: React.FC = () => {
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Product</label>
-                <select 
+                <select
                   className="form-select"
                   value={itemForm.productId}
-                  onChange={(e) => setItemForm(prev => ({ 
-                    ...prev, 
-                    productId: e.target.value,
-                    variantId: ''
-                  }))}
+                  onChange={(e) =>
+                    setItemForm((prev) => ({
+                      ...prev,
+                      productId: e.target.value,
+                      variantId: "",
+                    }))
+                  }
                 >
                   <option value="">Select Product</option>
-                  {state.products.map(product => (
+                  {state.products.map((product) => (
                     <option key={product.id} value={product.id}>
                       {product.name}
                     </option>
                   ))}
                 </select>
               </div>
-              
+
               <div className="form-group">
                 <label className="form-label">Variant</label>
-                <select 
+                <select
                   className="form-select"
                   value={itemForm.variantId}
-                  onChange={(e) => setItemForm(prev => ({ ...prev, variantId: e.target.value }))}
+                  onChange={(e) =>
+                    setItemForm((prev) => ({
+                      ...prev,
+                      variantId: e.target.value,
+                    }))
+                  }
                   disabled={!selectedProduct}
                 >
                   <option value="">Select Variant</option>
-                  {selectedProduct?.variants.map(variant => (
+                  {selectedProduct?.variants.map((variant) => (
                     <option key={variant.id} value={variant.id}>
-                      {variant.size} - {variant.color} (₹{variant.price}) - Stock: {variant.stock}
+                      {variant.size} - {variant.color} (₹{variant.price}) -
+                      Stock: {variant.stock}
                     </option>
                   ))}
                 </select>
               </div>
-              
+
               <Input
                 label="Quantity"
                 type="number"
                 value={itemForm.quantity}
-                onChange={(e) => setItemForm(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                onChange={(e) =>
+                  setItemForm((prev) => ({
+                    ...prev,
+                    quantity: parseInt(e.target.value) || 1,
+                  }))
+                }
                 min="1"
               />
-              
+
               <div className="form-group">
                 <label className="form-label">&nbsp;</label>
                 <Button type="button" onClick={handleAddItem}>
@@ -499,7 +612,7 @@ const Invoices: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {invoiceForm.items.map(item => (
+                  {invoiceForm.items.map((item) => (
                     <tr key={item.id}>
                       <td>{item.productName}</td>
                       <td>{item.size}</td>
@@ -528,10 +641,12 @@ const Invoices: React.FC = () => {
                     label="Discount (%)"
                     type="number"
                     value={invoiceForm.discount}
-                    onChange={(e) => setInvoiceForm(prev => ({ 
-                      ...prev, 
-                      discount: parseFloat(e.target.value) || 0 
-                    }))}
+                    onChange={(e) =>
+                      setInvoiceForm((prev) => ({
+                        ...prev,
+                        discount: parseFloat(e.target.value) || 0,
+                      }))
+                    }
                     min="0"
                     max="100"
                   />
@@ -539,15 +654,17 @@ const Invoices: React.FC = () => {
                     label="Tax (%)"
                     type="number"
                     value={invoiceForm.tax}
-                    onChange={(e) => setInvoiceForm(prev => ({ 
-                      ...prev, 
-                      tax: parseFloat(e.target.value) || 0 
-                    }))}
+                    onChange={(e) =>
+                      setInvoiceForm((prev) => ({
+                        ...prev,
+                        tax: parseFloat(e.target.value) || 0,
+                      }))
+                    }
                     min="0"
                     max="100"
                   />
                 </div>
-                
+
                 <div className="totals-summary">
                   <div className="total-line">
                     <span>Subtotal:</span>
@@ -573,9 +690,9 @@ const Invoices: React.FC = () => {
           )}
 
           <div className="form-actions">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => {
                 setIsCreateModalOpen(false);
                 resetInvoiceForm();
@@ -604,10 +721,21 @@ const Invoices: React.FC = () => {
           <div className="invoice-view">
             <div className="invoice-header">
               <div className="invoice-info">
-                <p><strong>Date:</strong> {new Date(selectedInvoice.createdAt).toLocaleDateString()}</p>
-                <p><strong>Customer:</strong> {selectedInvoice.customerName || 'Walk-in Customer'}</p>
-                <p><strong>Payment Mode:</strong> {selectedInvoice.paymentMode.toUpperCase()}</p>
-                <p><strong>Status:</strong> {selectedInvoice.status}</p>
+                <p>
+                  <strong>Date:</strong>{" "}
+                  {new Date(selectedInvoice.createdAt).toLocaleDateString()}
+                </p>
+                <p>
+                  <strong>Customer:</strong>{" "}
+                  {selectedInvoice.customerName || "Walk-in Customer"}
+                </p>
+                <p>
+                  <strong>Payment Mode:</strong>{" "}
+                  {selectedInvoice.paymentMode.toUpperCase()}
+                </p>
+                <p>
+                  <strong>Status:</strong> {selectedInvoice.status}
+                </p>
               </div>
             </div>
 
@@ -625,7 +753,7 @@ const Invoices: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedInvoice.items.map(item => (
+                  {selectedInvoice.items.map((item) => (
                     <tr key={item.id}>
                       <td>{item.productName}</td>
                       <td>{item.size}</td>
@@ -663,7 +791,7 @@ const Invoices: React.FC = () => {
             </div>
 
             <div className="modal-actions">
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => handlePrintInvoice(selectedInvoice)}
               >

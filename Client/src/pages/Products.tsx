@@ -4,7 +4,7 @@ import { Plus, Search, Filter, Edit, Trash2, Eye, Package } from "lucide-react";
 import Modal from "../components/common/Modal";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
-import productService from "../functions/product";
+import ProductService from "../functions/product";
 import { Brand, Category, Product, ProductVariant } from "../types/index";
 import CategoryService from "../functions/category";
 import BrandService from "../functions/brand";
@@ -90,7 +90,7 @@ const Products: React.FC = () => {
 
   const fetchAllProducts = async () => {
     try {
-      const result = await productService.getAllProducts();
+      const result = await ProductService.getAllProducts();
       setProducts(result);
     } catch (error) {
       console.error("Failed to fetch products", error);
@@ -229,7 +229,7 @@ const Products: React.FC = () => {
     );
     if (!confirmDelete) return;
 
-    const result = await productService.deleteProductWithVariants(productId);
+    const result = await ProductService.deleteProductWithVariants(productId);
 
     if (result.success) {
       setAlert({ type: "success", message: "Product deleted successfully." });
@@ -249,7 +249,7 @@ const Products: React.FC = () => {
     );
     if (!confirmDelete) return;
 
-    const result = await productService.deleteProductVariant(variantId);
+    const result = await ProductService.deleteProductVariant(variantId);
 
     if (result.success) {
       // Optionally refresh the list or update state
@@ -286,14 +286,14 @@ const Products: React.FC = () => {
 
       if (isEditMode && editingProductId) {
         // ✅ Update product
-        response = await productService.updateProductWithVariants(
+        response = await ProductService.updateProductWithVariants(
           editingProductId,
           payload,
           payload.variants // ✅ Consistent argument type
         );
       } else {
         // ✅ Create product
-        response = await productService.createProductWithVariants(payload);
+        response = await ProductService.createProductWithVariants(payload);
       }
 
       if (response.success) {
@@ -365,7 +365,7 @@ const Products: React.FC = () => {
 
     const variant = variants[editingVariantIndex];
     try {
-      const response = await productService.updateVariant(variant.id!, variant);
+      const response = await ProductService.updateVariant(variant.id!, variant);
       if (response.success) {
         setAlert({ type: "success", message: "✅ Variant updated!" });
         setIsVariantEditMode(false);

@@ -1084,6 +1084,8 @@
 
 .barcode-checkbox {
   margin-top: var(--spacing-1);
+  width: 1.1rem;
+  
 }
 
 .product-details {

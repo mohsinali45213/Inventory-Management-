@@ -1,58 +1,66 @@
-import React, { useState } from 'react';
-import { Search, Filter, Printer, Package, Download } from 'lucide-react';
-import { useInventory } from '../context/InventoryContext';
+import React, { useEffect, useState } from 'react';
+import { Search, Filter, Printer, Package } from 'lucide-react';
 import Button from '../components/common/Button';
 import { generateBarcodeDataURL, printBarcode } from '../utils/barcode';
 
+import BrandService from '../functions/brand';
+import CategoryService from '../functions/category';
+import SubCategoryService from '../functions/subCategory';
+import ProductService from '../functions/product';
+
 const Barcode: React.FC = () => {
-  const { state } = useInventory();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [variants, setVariants] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [subCategories, setSubCategories] = useState<any[]>([]);
 
-  // Flatten products with variants for barcode generation
-  const barcodeItems = state.products.flatMap(product => 
-    product.variants.map(variant => ({
-      productId: product.id,
-      productName: product.name,
-      categoryId: product.categoryId,
-      categoryName: state.categories.find(c => c.id === product.categoryId)?.name || 'Unknown',
-      brandId: product.brandId,
-      brandName: state.brands.find(b => b.id === product.brandId)?.name || 'Unknown',
-      variantId: variant.id,
-      size: variant.size,
-      color: variant.color,
-      price: variant.price,
-      stock: variant.stock,
-      barcode: variant.barcode,
-      sku: variant.sku
-    }))
-  );
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [categoryRes, brandRes, variantRes,subCategoryRes] = await Promise.all([
+          CategoryService.getAllCategories(),
+          BrandService.getAllBrand(),
+          ProductService.getAllVariants(),
+          SubCategoryService.getAllSubCategories()
+        ]);
 
-  const filteredItems = barcodeItems.filter(item => {
-    const matchesSearch = 
-      item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.categoryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.brandName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.size.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.color.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.barcode.includes(searchTerm) ||
-      item.sku?.includes(searchTerm);
+        // ✅ Extract .data from response
+        setCategories(categoryRes.data || []);
+        setBrands(brandRes.data || []);
+        setSubCategories(subCategoryRes.data || []);
+        setVariants(variantRes || []);
 
-    const matchesCategory = categoryFilter === 'all' || item.categoryId === categoryFilter;
-    const matchesBrand = brandFilter === 'all' || item.brandId === brandFilter;
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      }
+    };
+
+    fetchInitialData();
+  }, []);
+
+  const filteredItems = variants.filter(item => {
+    const matchesSearch =
+      item?.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item?.product.category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item?.product.subCategory.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item?.product.brand.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item?.size.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item?.color.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item?.barcode.includes(searchTerm);
+
+    const matchesCategory = categoryFilter === 'all' || item?.product.category.name === categoryFilter;
+    const matchesBrand = brandFilter === 'all' || item?.product.brand.name === brandFilter;
 
     return matchesSearch && matchesCategory && matchesBrand;
   });
 
   const handleSelectItem = (itemKey: string) => {
     const newSelected = new Set(selectedItems);
-    if (newSelected.has(itemKey)) {
-      newSelected.delete(itemKey);
-    } else {
-      newSelected.add(itemKey);
-    }
+    newSelected.has(itemKey) ? newSelected.delete(itemKey) : newSelected.add(itemKey);
     setSelectedItems(newSelected);
   };
 
@@ -65,7 +73,7 @@ const Barcode: React.FC = () => {
   };
 
   const handlePrintSelected = () => {
-    const selectedItemsData = filteredItems.filter(item => 
+    const selectedItemsData = filteredItems.filter(item =>
       selectedItems.has(`${item.productId}-${item.variantId}`)
     );
 
@@ -74,7 +82,6 @@ const Barcode: React.FC = () => {
       return;
     }
 
-    // Create a print window with multiple labels
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -97,11 +104,7 @@ const Barcode: React.FC = () => {
       <head>
         <title>Barcode Labels</title>
         <style>
-          body {
-            margin: 0;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-          }
+          body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
           .labels-container {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -124,7 +127,6 @@ const Barcode: React.FC = () => {
           .product-name {
             font-size: 11px;
             margin-bottom: 4px;
-            word-wrap: break-word;
             font-weight: 600;
           }
           .product-variant {
@@ -155,9 +157,7 @@ const Barcode: React.FC = () => {
         <script>
           window.onload = function() {
             window.print();
-            window.onafterprint = function() {
-              window.close();
-            };
+            window.onafterprint = function() { window.close(); };
           };
         </script>
       </body>
@@ -166,10 +166,6 @@ const Barcode: React.FC = () => {
 
     printWindow.document.write(printContent);
     printWindow.document.close();
-  };
-
-  const handlePrintSingle = (item: any) => {
-    printBarcode(item.barcode, `${item.productName} (${item.size} • ${item.color})`, item.price);
   };
 
   return (
@@ -183,10 +179,7 @@ const Barcode: React.FC = () => {
           </div>
         </div>
         <div className="header-actions">
-          <Button 
-            onClick={handlePrintSelected}
-            disabled={selectedItems.size === 0}
-          >
+          <Button onClick={handlePrintSelected} disabled={selectedItems.size === 0}>
             <Printer size={16} />
             Print Selected ({selectedItems.size})
           </Button>
@@ -200,7 +193,7 @@ const Barcode: React.FC = () => {
               <Search className="search-input-icon" size={20} />
               <input
                 type="text"
-                placeholder="Search products, categories, brands, SKU, or barcode..."
+                placeholder="Search products, categories, brands, or barcode..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
@@ -215,10 +208,11 @@ const Barcode: React.FC = () => {
                   onChange={(e) => setCategoryFilter(e.target.value)}
                 >
                   <option value="all">All Categories</option>
-                  {state.categories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
+                  {Array.isArray(categories) &&
+                    categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
                   ))}
                 </select>
               </div>
@@ -230,10 +224,11 @@ const Barcode: React.FC = () => {
                   onChange={(e) => setBrandFilter(e.target.value)}
                 >
                   <option value="all">All Brands</option>
-                  {state.brands.map(brand => (
-                    <option key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </option>
+                  {Array.isArray(brands) &&
+                    brands.map((brand) => (
+                      <option key={brand.id} value={brand.name}>
+                        {brand.name}
+                      </option>
                   ))}
                 </select>
               </div>
@@ -251,16 +246,13 @@ const Barcode: React.FC = () => {
         </div>
 
         <div className="barcode-grid">
-          {filteredItems.map((item) => {
+          {filteredItems.map(item => {
             const itemKey = `${item.productId}-${item.variantId}`;
             const isSelected = selectedItems.has(itemKey);
             const barcodeDataURL = generateBarcodeDataURL(item.barcode);
 
             return (
-              <div 
-                key={itemKey} 
-                className={`barcode-card ${isSelected ? 'selected' : ''}`}
-              >
+              <div key={itemKey} className={`barcode-card ${isSelected ? 'selected' : ''}`}>
                 <div className="barcode-card-header">
                   <input
                     type="checkbox"
@@ -269,37 +261,39 @@ const Barcode: React.FC = () => {
                     className="barcode-checkbox"
                   />
                   <div className="product-info">
-                    <div className="product-name">{item.productName}</div>
+                    <div className="product-name">{item.product.name}</div>
                     <div className="product-variant">{item.size} • {item.color}</div>
                     <div className="product-details">
-                      <span className="category-badge">{item.categoryName}</span>
-                      <span className="brand-badge">{item.brandName}</span>
+                      <span className="category-badge">{item.product.category.name}</span>
+                      <span className="brand-badge">{item.product.subCategory.name}</span>
+                      <span className="brand-badge">{item.product.brand.name}</span>
                     </div>
                   </div>
                 </div>
-
                 <div className="barcode-preview">
                   <div className="label-preview">
                     <div className="label-shop-name">CLOTHING STORE</div>
-                    <div className="label-product-name">{item.productName}</div>
+                    <div className="label-product-name">{item.product.name}</div>
                     <div className="label-variant">{item.size} • {item.color}</div>
                     <div className="label-price">₹{item.price.toLocaleString()}</div>
-                    {barcodeDataURL && (
-                      <img src={barcodeDataURL} alt="Barcode" className="label-barcode" />
-                    )}
+                    <img src={barcodeDataURL} alt="Barcode" className="label-barcode" />
                   </div>
                 </div>
-
                 <div className="barcode-card-footer">
                   <div className="barcode-info">
-                    <div className="barcode-number">{item.barcode}</div>
-                    <div className="sku-number">SKU: {item.sku}</div>
-                    <div className="stock-info">Stock: {item.stock}</div>
+                    <div className="barcode-number">Barcode: {item.barcode}</div>
+                    <div className="stock-info">Stock: {item.stock_qty}</div>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handlePrintSingle(item)}
+                    onClick={() =>
+                      printBarcode(
+                        item.barcode,
+                        `${item.product.name} (${item.size} • ${item.color})`,
+                        item.price
+                      )
+                    }
                   >
                     <Printer size={14} />
                     Print

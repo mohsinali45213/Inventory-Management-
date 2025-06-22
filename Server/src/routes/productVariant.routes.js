@@ -11,7 +11,7 @@ const productVariantRouter = express.Router();
 
 productVariantRouter.get("/", getAllProductVariants);
 productVariantRouter.get("/:id", getProductVariantById);
-productVariantRouter.put("/:id", upload.single("image_url"), updateProductVariant);
+productVariantRouter.put("/:id", updateProductVariant);
 productVariantRouter.delete("/:id", deleteProductVariant);
 
 export default productVariantRouter;
