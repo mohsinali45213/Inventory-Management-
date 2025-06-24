@@ -28,6 +28,7 @@ import {
   getInvoiceById,
   // updateInvoice,
   deleteInvoice,
+  getItemByBarcode,
 } from "../controllers/invoice.controllers.js";
 
 const invoiceRouter = express.Router();
@@ -40,6 +41,7 @@ invoiceRouter.get("/", getAllInvoicesWithItems);
 
 // ✅ Get invoice by ID
 invoiceRouter.get("/:id", getInvoiceById);
+invoiceRouter.get("/barcode/:code", getItemByBarcode); // For backward compatibility
 
 // ✅ Update invoice
 // invoiceRouter.put("/:id", updateInvoice);

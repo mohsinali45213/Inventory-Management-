@@ -31,10 +31,19 @@ const getAllInvoices = async (): Promise<Invoice[]> => {
 const getInvoiceById = async (id: string): Promise<Invoice> => {
   const response = await fetch(`${API_URL}/invoices/${id}`);
   if (!response.ok) {
-    throw new Error('Failed to fetch invoice');
+    throw new Error("Failed to fetch invoice");
   }
-  return response.json();
+
+  const json = await response.json();
+
+  // Check if the structure is as expected
+  if (!json.success || !json.data) {
+    throw new Error(json.message || "Unexpected response structure");
+  }
+
+  return json.data; // ✅ Only return the actual invoice data
 };
+
 
 const updateInvoice = async (id: string, invoice: Invoice): Promise<Invoice> => {
   const response = await fetch(`${API_URL}/invoices/${id}`, {
@@ -60,6 +69,24 @@ const deleteInvoice = async (id: string): Promise<void> => {
 };
 
 
+export const getItemByBarcode = async (barcode: string) => {
+  const response = await fetch(`${API_URL}/invoices/barcode/${barcode}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch product by barcode");
+  }
+
+  const result = await response.json();
+
+  if (!result.success || !result.data) {
+    throw new Error("Product not found");
+  }
+
+  return result.data; // should contain productId, variantId, productName, size, color, price, stock_qty
+};
+
+
+
 
 
 const invoiceService = {
@@ -68,6 +95,7 @@ const invoiceService = {
   getInvoiceById,
   updateInvoice,
   deleteInvoice,
+  getItemByBarcode,
 };
 
 export default invoiceService;

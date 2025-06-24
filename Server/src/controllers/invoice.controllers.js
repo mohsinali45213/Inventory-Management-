@@ -5,9 +5,9 @@ import Sequelize from "../db/db.js";
 // import InvoiceItem from "../models/invoiceItem.models.js";
 import Customer from "../models/customers.models.js";
 // import ProductVariant from "../models/productVariant.models.js";
-
+  
 import models from "../models/index.js"; // ✅ central file
-const { Invoice, InvoiceItem, ProductVariant } = models;
+const { Invoice, InvoiceItem, ProductVariant,Product } = models;
 
 // 🔢 Utility: Generate unique invoice number like INV-YYYYMMDD-001
 const generateInvoiceNumber = async () => {
@@ -166,11 +166,54 @@ export const getAllInvoicesWithItems = async (req, res) => {
 
 
 // ✅ Get Invoice by ID
+// export const getInvoiceById = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const invoice = await Invoice.findByPk(id);
+//     if (!invoice) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Invoice not found.",
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Invoice fetched successfully.",
+//       data: invoice,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch invoice.",
+//       error: error.message,
+//     });
+//   }
+// };
+
+
+// import { Invoice, InvoiceItem, Product, Variant } from "../models"; // adjust path as needed
+
 export const getInvoiceById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const invoice = await Invoice.findByPk(id);
+    const invoice = await Invoice.findByPk(id, {
+      include: [
+        {
+          model: InvoiceItem,
+          as: "invoiceItems", // ✅ must match your association alias
+          include: [
+            {
+              model: ProductVariant,
+              as: "variant", // ✅ alias as defined in your Sequelize associations
+            },
+          ],
+        },
+      ],
+    });
+
     if (!invoice) {
       return res.status(404).json({
         success: false,
@@ -184,6 +227,7 @@ export const getInvoiceById = async (req, res) => {
       data: invoice,
     });
   } catch (error) {
+    console.error("Error fetching invoice by ID:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch invoice.",
@@ -191,6 +235,51 @@ export const getInvoiceById = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+// GET /api/barcode/:code
+export const getItemByBarcode = async (req, res) => {
+  try {
+    const { code } = req.params;
+
+    const variant = await ProductVariant.findOne({
+      where: { barcode: code },
+      include: [{ model: Product, as: "product" }],
+    });
+
+    if (!variant) {
+      return res.status(404).json({ success: false, message: "Item not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Item found",
+      data: {
+        productId: variant.productId,
+        productName: variant.product.name,
+        variantId: variant.id,
+        size: variant.size,
+        color: variant.color,
+        price: variant.price,
+        stock_qty: variant.stock_qty,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error", error: error.message });
+  }
+};
+
+
+
+
+
+
+
+
+
 
 // ✅ Delete Invoice
 export const deleteInvoice = async (req, res) => {

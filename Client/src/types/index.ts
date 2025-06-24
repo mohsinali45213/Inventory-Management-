@@ -57,7 +57,7 @@ export interface Invoice {
   id?: string;
   invoiceNumber: string;
   customerName?: string;
-  items: InvoiceItem[];
+  invoiceItems: InvoiceItem[];
   subtotal: number;
   tax: number;
   discount: number;
@@ -70,7 +70,7 @@ export interface Invoice {
 export interface InvoiceItem {
   id?: string;
   productId: string;
-  variantId: string;
+  variant: any;
   productName: string;
   size: string;
   color: string;
