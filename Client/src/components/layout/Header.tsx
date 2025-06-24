@@ -1,13 +1,93 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Search, Bell, Plus, ChevronDown, User, LogOut } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useModal } from "../../context/ModalContext";
+import ProductService from "../../functions/product";
+import BransService from "../../functions/brand";
+import CategoryService from "../../functions/category";
+import SubCategoryService from "../../functions/subCategory";
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
   const { setTriggerAddModal  } = useModal();
+
+  // const fetchProducts = async () => {
+  //   try {
+  //     const response = await ProductService.getAllProducts();
+  //     setProducts(response.data);
+  //   } catch (error) {
+  //     console.error("Error fetching products:", error);
+  //   }
+  // };
+
+  // const fetchBrands = async () => {
+  //   try {
+  //     const response = await BransService.getAllBrands();
+  //     setBrands(response.data);
+  //   } catch (error) {
+  //     console.error("Error fetching brands:", error);
+  //   }
+  // };
+
+  // const fetchCategories = async () => {
+  //   try {
+  //     const response = await CategoryService.getAllCategories();
+  //     setCategories(response.data);
+  //   } catch (error) {
+  //     console.error("Error fetching categories:", error);
+  //   }
+  // };
+
+  // const fetchSubCategories = async () => {
+  //   try {
+  //     const response = await SubCategoryService.getAllSubCategories();
+  //     setSubCategories(response.data);
+  //   } catch (error) {
+  //     console.error("Error fetching subcategories:", error);
+  //   }
+  // };
+
+  // const [searchParams, setSearchParams] = useState({
+  //   category: '',
+  //   subcategory: '',
+  //   brand: '',
+  //   name: '',
+  // });
+
+  // const [filteredProducts, setFilteredProducts] = useState([]);
+
+  // useEffect(() => {
+  //   filterProducts();
+  // }, [searchParams]);
+
+  // const handleChange = (e) => {
+  //   const { name, value } = e.target;
+  //   setSearchParams((prev) => ({
+  //     ...prev,
+  //     [name]: value.toLowerCase(),
+  //   }));
+  // };
+
+  // const filterProducts = () => {
+  //   const { category, subcategory, brand, name } = searchParams;
+
+  //   const result = products.filter((product) => {
+  //     return (
+  //       (!category || product.category.toLowerCase().includes(category)) &&
+  //       (!subcategory || product.subcategory.toLowerCase().includes(subcategory)) &&
+  //       (!brand || product.brand.toLowerCase().includes(brand)) &&
+  //       (!name || product.name.toLowerCase().includes(name))
+  //     );
+  //   });
+
+  //   setFilteredProducts(result);
+  // };
 
   return (
     <header className="header">

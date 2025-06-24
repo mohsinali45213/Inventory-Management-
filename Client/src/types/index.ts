@@ -70,6 +70,7 @@ export interface Invoice {
 export interface InvoiceItem {
   id?: string;
   productId: string;
+  variantId: any;
   variant: any;
   productName: string;
   size: string;

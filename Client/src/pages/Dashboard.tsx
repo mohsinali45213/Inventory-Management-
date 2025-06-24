@@ -41,18 +41,18 @@ const Dashboard: React.FC = () => {
     name: category.name,
     stock: state.products
       .filter(p => p.categoryId === category.id)
-      .reduce((sum, p) => sum + p.variants.reduce((vSum, v) => vSum + v.stock, 0), 0)
+      .reduce((sum, p) => sum + p.variants.reduce((vSum, v) => vSum + v.stock_qty, 0), 0)
   }));
 
   const lowStockProducts = state.products
     .flatMap(product => 
       product.variants
-        .filter(variant => variant.stock > 0 && variant.stock <= 10)
+        .filter(variant => variant.stock_qty > 0 && variant.stock_qty <= 10)
         .map(variant => ({
           productName: product.name,
           size: variant.size,
           color: variant.color,
-          stock: variant.stock,
+          stock: variant.stock_qty ,
           price: variant.price
         }))
     )
