@@ -42,6 +42,8 @@ import ProductVariant from "./productVariant.models.js";
 import Invoice from "./invoice.models.js";
 import InvoiceItem from "./invoiceItem.models.js";
 import Customer from "./customers.models.js";
+import InvoiceDraft from "./invoice_draft.models.js";
+import InvoiceDraftItem from "./Invoice_draft_item.models.js";
 
 // Register all models in the models object
 const models = {
@@ -53,6 +55,8 @@ const models = {
   Invoice,
   InvoiceItem,
   Customer,
+  InvoiceDraft,
+  InvoiceDraftItem,
 };
 
 // Call associate() for each model
@@ -75,6 +79,8 @@ export {
   Invoice,
   InvoiceItem,
   Customer,
+  InvoiceDraft,
+  InvoiceDraftItem,
 };
 
 export { sequelize as db };

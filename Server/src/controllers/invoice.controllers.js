@@ -4,6 +4,8 @@ import Sequelize from "../db/db.js";
 // import Invoice from "../models/invoice.models.js";
 // import InvoiceItem from "../models/invoiceItem.models.js";
 import Customer from "../models/customers.models.js";
+import InvoiceDraft from "../models/invoice_draft.models.js";
+import InvoiceDraftItem from "../models/Invoice_draft_item.models.js";
 // import ProductVariant from "../models/productVariant.models.js";
   
 import models from "../models/index.js"; // ✅ central file
@@ -13,6 +15,8 @@ const { Invoice, InvoiceItem, ProductVariant,Product } = models;
 const generateInvoiceNumber = async () => {
   const today = new Date();
   const datePart = today.toISOString().split("T")[0].replace(/-/g, "");
+  
+  // Get count of invoices created today
   const countToday = await Invoice.count({
     where: {
       createdAt: {
@@ -20,17 +24,45 @@ const generateInvoiceNumber = async () => {
       },
     },
   });
+  
   const serial = String(countToday + 1).padStart(3, "0");
-  return `INV-${datePart}-${serial}`;
+  const invoiceNumber = `INV-${datePart}-${serial}`;
+  
+  // Check if this invoice number already exists (race condition protection)
+  const existingInvoice = await Invoice.findOne({
+    where: { invoiceNumber }
+  });
+  
+  if (existingInvoice) {
+    // If exists, try with a higher serial number
+    const maxSerial = await Invoice.max('invoiceNumber', {
+      where: {
+        invoiceNumber: {
+          [Op.like]: `INV-${datePart}-%`
+        }
+      }
+    });
+    
+    if (maxSerial) {
+      const lastSerial = parseInt(maxSerial.split('-')[2]);
+      const newSerial = String(lastSerial + 1).padStart(3, "0");
+      return `INV-${datePart}-${newSerial}`;
+    }
+  }
+  
+  return invoiceNumber;
 };
 
 // ✅ Create Invoice with Items (Handles new and existing customers)
 export const createInvoiceWithItems = async (req, res) => {
   const transaction = await Sequelize.transaction();
+  
   try {
+    console.log("Received invoice data:", req.body);
+    
     const {
-      customerId,
-      customer,
+      customerName,
+      customerPhone,
       subtotal,
       discount,
       tax,
@@ -40,72 +72,177 @@ export const createInvoiceWithItems = async (req, res) => {
       items,
     } = req.body;
 
-    if (!subtotal || !discount || !tax || !total || !paymentMode || !items?.length) {
-      return res.status(400).json({
-        success: false,
-        message: "All billing fields, payment mode, and items are required.",
+    // 🔍 Customer handling
+    let customerId = null;
+    if (customerName && customerPhone) {
+      console.log("Customer creation check:", {
+        hasCustomerName: !!customerName,
+        hasCustomerPhone: !!customerPhone,
+        customerNameLength: customerName.length,
+        customerPhoneLength: customerPhone.length,
+        customerNameValue: customerName,
+        customerPhoneValue: customerPhone
+      });
+
+      // Check if customer already exists
+      console.log("Looking for existing customer with phone:", customerPhone);
+      let customer = await Customer.findOne({
+        where: { phoneNumber: customerPhone }
+      });
+
+      if (!customer) {
+        console.log("Customer not found, creating new customer:", { name: customerName, phone: customerPhone });
+        customer = await Customer.create({
+          name: customerName,
+          phoneNumber: customerPhone,
+        }, { transaction });
+        console.log("New customer created:", customer.toJSON());
+      }
+
+      customerId = customer.id;
+      console.log("Customer resolved for invoice:", {
+        customerId,
+        customerName,
+        customerPhone,
+        customerIdType: typeof customerId
       });
     }
 
-    let finalCustomerId = null;
-
-    if (customerId) {
-      const existingCustomer = await Customer.findByPk(customerId);
-      if (!existingCustomer) {
-        return res.status(404).json({
-          success: false,
-          message: "Customer not found.",
-        });
+    // 🔢 Generate invoice number with retry mechanism
+    let invoiceNumber;
+    let invoice; // Declare invoice variable outside the loop
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        invoiceNumber = await generateInvoiceNumber();
+        console.log(`Generated invoice number (attempt ${retryCount + 1}):`, invoiceNumber);
+        
+        // Try to create the invoice
+        invoice = await Invoice.create(
+          {
+            invoiceNumber,
+            customerId,
+            subtotal,
+            discount,
+            tax,
+            total,
+            paymentMode,
+            status,
+          },
+          { transaction }
+        );
+        
+        console.log("Invoice created successfully:", invoice.toJSON());
+        break; // Success, exit retry loop
+        
+      } catch (error) {
+        if (error.name === 'SequelizeUniqueConstraintError' && error.fields?.invoiceNumber) {
+          console.log(`Invoice number conflict detected (attempt ${retryCount + 1}):`, invoiceNumber);
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            throw new Error(`Failed to generate unique invoice number after ${maxRetries} attempts`);
+          }
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } else {
+          throw error; // Re-throw non-invoice-number errors
+        }
       }
-      finalCustomerId = customerId;
-    } else if (customer) {
-      const { name, phone } = customer;
-
-      if (!name || !phone) {
-        return res.status(400).json({
-          success: false,
-          message: "Customer name and phone are required for new customers.",
-        });
-      }
-
-      const newCustomer = await Customer.create({ name, phone }, { transaction });
-      finalCustomerId = newCustomer.id;
     }
 
-    const invoiceNumber = await generateInvoiceNumber();
+    // Check if invoice was created successfully
+    if (!invoice) {
+      throw new Error("Failed to create invoice after all retry attempts");
+    }
 
-    const newInvoice = await Invoice.create({
-      invoiceNumber,
-      customerId: finalCustomerId,
-      subtotal,
-      discount,
-      tax,
-      total,
-      paymentMode: paymentMode.toLowerCase(),
-      status: status?.toLowerCase() || "pending",
-    }, { transaction });
+    // 📦 Create invoice items
+    if (items && items.length > 0) {
+      console.log("Creating invoice items:", items);
+      
+      for (const item of items) {
+        const { variantId, quantity, total } = item;
+        
+        // Get product variant details
+        const variant = await ProductVariant.findByPk(variantId);
+        if (!variant) {
+          throw new Error(`Product variant not found: ${variantId}`);
+        }
+        
+        // Check stock availability
+        if (variant.stock_qty < quantity) {
+          throw new Error(`Insufficient stock for ${variant.product?.name || 'product'}. Available: ${variant.stock_qty}, Requested: ${quantity}`);
+        }
+        
+        // Create invoice item
+        await InvoiceItem.create(
+          {
+            invoiceId: invoice.id,
+            variantId,
+            quantity,
+            unitPrice: total / quantity,
+            total,
+          },
+          { transaction }
+        );
+        
+        // Reduce stock - check again before updating
+        const currentStock = variant.stock_qty;
+        const newStock = currentStock - quantity;
+        
+        if (newStock < 0) {
+          throw new Error(`Insufficient stock for ${variant.product?.name || 'product'}. Available: ${currentStock}, Requested: ${quantity}`);
+        }
+        
+        await variant.update(
+          { stock_qty: newStock },
+          { transaction }
+        );
+        
+        console.log(`Stock reduced for variant ${variantId}: ${currentStock} -> ${newStock}`);
+      }
+    }
 
-    const itemRows = items.map(item => ({
-      invoiceId: newInvoice.id,
-      variantId: item.variantId,
-      quantity: item.quantity,
-      total: item.total
-    }));
-
-    await InvoiceItem.bulkCreate(itemRows, { transaction });
     await transaction.commit();
+    
+    // Fetch complete invoice with items
+    const completeInvoice = await Invoice.findByPk(invoice.id, {
+      include: [
+        {
+          model: InvoiceItem,
+          as: "invoiceItems",
+          include: [
+            {
+              model: ProductVariant,
+              as: "variant",
+              include: [{ model: Product, as: "product" }],
+            },
+          ],
+        },
+        { 
+          model: Customer,
+          as: "customer",
+        },
+      ],
+    });
 
     res.status(201).json({
       success: true,
-      message: "Invoice with items created successfully.",
-      data: { invoice: newInvoice, items: itemRows },
+      message: "Invoice created successfully",
+      data: {
+        invoice: completeInvoice,
+      },
     });
   } catch (error) {
-    await transaction.rollback();
+    // Only rollback if transaction is still active
+    if (transaction && !transaction.finished) {
+      await transaction.rollback();
+    }
+    console.error("Error in createInvoiceWithItems:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to create invoice with items.",
-      error: error.message,
+      message: error.message || "Failed to create invoice",
     });
   }
 };
@@ -304,6 +441,113 @@ export const deleteInvoice = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to delete invoice.",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ Convert Draft to Final Invoice (Print & Save)
+export const convertDraftToInvoice = async (req, res) => {
+  const transaction = await Sequelize.transaction();
+  try {
+    const { draftId } = req.body;
+
+    if (!draftId) {
+      return res.status(400).json({
+        success: false,
+        message: "Draft ID is required.",
+      });
+    }
+
+    // Get the draft with items and customer information
+    const draft = await InvoiceDraft.findByPk(draftId, {
+      include: [
+        {
+          model: InvoiceDraftItem,
+          as: "items",
+        },
+        {
+          model: Customer,
+          as: "customer",
+          attributes: ['id', 'name', 'phoneNumber'],
+        }
+      ],
+      transaction
+    });
+
+    if (!draft) {
+      return res.status(404).json({
+        success: false,
+        message: "Invoice draft not found.",
+      });
+    }
+
+    console.log('Converting draft to invoice:', {
+      draftId: draft.id,
+      customerId: draft.customerId,
+      customer: draft.customer,
+      items: draft.items?.length || 0
+    });
+
+    // Generate invoice number
+    const invoiceNumber = await generateInvoiceNumber();
+
+    // Create the final invoice with customerId
+    const newInvoice = await Invoice.create({
+      invoiceNumber,
+      customerId: draft.customerId, // This should be set from the draft
+      subtotal: draft.subtotal,
+      discount: draft.discount,
+      tax: draft.tax,
+      total: draft.total,
+      paymentMode: draft.paymentMode,
+      status: "paid",
+    }, { transaction });
+
+    console.log('Created invoice with customerId:', newInvoice.customerId);
+
+    // Create invoice items and reduce stock
+    for (const draftItem of draft.items) {
+      // Create invoice item
+      await InvoiceItem.create({
+        invoiceId: newInvoice.id,
+        variantId: draftItem.variantId,
+        quantity: draftItem.quantity,
+        total: draftItem.total
+      }, { transaction });
+
+      // Reduce stock
+      const variant = await ProductVariant.findByPk(draftItem.variantId, { transaction });
+      if (variant) {
+        if (variant.stock_qty < draftItem.quantity) {
+          throw new Error(`Insufficient stock for variant ${variant.id}. Available: ${variant.stock_qty}, Requested: ${draftItem.quantity}`);
+        }
+        await variant.update({
+          stock_qty: variant.stock_qty - draftItem.quantity
+        }, { transaction });
+      }
+    }
+
+    // Delete the draft and its items
+    await draft.destroy({ transaction });
+
+    await transaction.commit();
+
+    res.status(201).json({
+      success: true,
+      message: "Draft converted to invoice successfully and stock updated.",
+      data: { 
+        invoice: newInvoice, 
+        invoiceNumber: invoiceNumber,
+        items: draft.items 
+      },
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Error converting draft to invoice:', error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to convert draft to invoice.",
       error: error.message,
     });
   }

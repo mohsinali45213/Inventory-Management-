@@ -55,15 +55,16 @@ export interface Brand {
 
 export interface Invoice {
   id?: string;
-  invoiceNumber: string;
+  invoiceNumber?: string;
   customerName?: string;
+  customerPhone?: string;
   invoiceItems: InvoiceItem[];
   subtotal: number;
   tax: number;
   discount: number;
   total: number;
   paymentMode: 'cash' | 'card' | 'upi' | 'cheque';
-  createdAt: Date;
+  createdAt?: Date;
   status: 'paid' | 'pending' | 'cancelled';
 }
 

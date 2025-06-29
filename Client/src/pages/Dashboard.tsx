@@ -1,22 +1,110 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  Package, 
-  Folder, 
-  Tag, 
-  DollarSign, 
-  FileText, 
-  TrendingUp, 
+import React, { useEffect, useState } from "react";
+import {
+  Package,
+  Folder,
+  Tag,
+  DollarSign,
+  FileText,
+  TrendingUp,
   AlertTriangle,
-  Eye
-} from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, ResponsiveContainer } from 'recharts';
-import { useInventory } from '../context/InventoryContext';
-import StatCard from '../components/dashboard/StatCard';
-import { format } from 'date-fns';
+  Eye,
+  Shirt,
+  Plus,
+  ShoppingBag,
+  Minus,
+  Trash,
+  Save,
+  Printer,
+  Scan,
+  X,
+  Download,
+  RotateCcw,
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  BarChart,
+  Bar,
+  ResponsiveContainer,
+} from "recharts";
+import { useInventory } from "../context/InventoryContext";
+import StatCard from "../components/dashboard/StatCard";
+import { format } from "date-fns";
+import invoiceService from "../functions/invoice";
+import invoiceDraftService from "../functions/invoiceDraft";
+import CategoryService from "../functions/category";
+import ProductService from "../functions/product";
+import { API_URL } from "../config/config";
+import Toast from '../components/common/Toast';
+import '../styles/Modal.css';
+import '../styles/Dashboard.css';
+
+interface BillingItem {
+  id: string;
+  productId: string;
+  variantId: string;
+  productName: string;
+  size: string;
+  color: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  barcode: string;
+  stock_qty: number;
+}
+
+interface InvoiceDraft {
+  id: string;
+  draftNumber: string;
+  customerName: string;
+  customerPhone: string;
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  paymentMode: string;
+  status: 'draft' | 'saved';
+  createdAt: string;
+  items?: any[];
+}
 
 const Dashboard: React.FC = () => {
   const { state } = useInventory();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [searchBarcode, setSearchBarcode] = useState("");
+  const [product, setProduct] = useState<any>(null);
+  const [allProducts, setAllProducts] = useState<any>([]);
+  const [searchProduct, setSearchProduct] = useState("");
+  const [allCustomers, setAllCustomers] = useState<any>([]);
+  const [customerToggle, setCustomerToggle] = useState<any>(false)
+  const [customerSearch, setCustomerSearch] = useState<any>("")
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string, details?: any } | null>(null);
+  
+  // Billing state
+  const [billingItems, setBillingItems] = useState<BillingItem[]>([]);
+  const [customerInfo, setCustomerInfo] = useState({
+    name: '',
+    phone: '',
+    gst: false,
+    discountPercentage: 0,
+  });
+  const [paymentDetails, setPaymentDetails] = useState({
+    paymentMethod: '',
+    subtotal: 0,
+    discount: 0,
+    gst: 0,
+    total: 0,
+  });
+
+  // Drafts state
+  const [invoiceDrafts, setInvoiceDrafts] = useState<InvoiceDraft[]>([]);
+  const [showDraftsModal, setShowDraftsModal] = useState(false);
+  const [selectedDraft, setSelectedDraft] = useState<InvoiceDraft | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -26,201 +114,886 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Mock chart data
-  const salesData = [
-    { date: '2024-01-01', sales: 1200, revenue: 45000 },
-    { date: '2024-01-02', sales: 1900, revenue: 67000 },
-    { date: '2024-01-03', sales: 800, revenue: 32000 },
-    { date: '2024-01-04', sales: 2200, revenue: 78000 },
-    { date: '2024-01-05', sales: 1500, revenue: 55000 },
-    { date: '2024-01-06', sales: 2800, revenue: 89000 },
-    { date: '2024-01-07', sales: 2400, revenue: 72000 }
-  ];
+  // Calculate totals whenever billing items or customer info changes
+  useEffect(() => {
+    calculateTotals();
+  }, [billingItems, customerInfo]);
 
-  const stockByCategory = state.categories.map(category => ({
-    name: category.name,
-    stock: state.products
-      .filter(p => p.categoryId === category.id)
-      .reduce((sum, p) => sum + p.variants.reduce((vSum, v) => vSum + v.stock_qty, 0), 0)
-  }));
+  const calculateTotals = () => {
+    const subtotal = billingItems.reduce((sum, item) => sum + item.total, 0);
+    const discount = (subtotal * customerInfo.discountPercentage) / 100;
+    const gst = customerInfo.gst ? ((subtotal - discount) * 18) / 100 : 0;
+    const total = subtotal - discount + gst;
+    
+    setPaymentDetails(prev => ({
+      ...prev,
+      subtotal,
+      discount,
+      gst,
+      total,
+    }));
+  };
 
-  const lowStockProducts = state.products
-    .flatMap(product => 
-      product.variants
-        .filter(variant => variant.stock_qty > 0 && variant.stock_qty <= 10)
-        .map(variant => ({
-          productName: product.name,
-          size: variant.size,
-          color: variant.color,
-          stock: variant.stock_qty ,
-          price: variant.price
-        }))
-    )
-    .slice(0, 5);
+  const showMessage = (type: 'success' | 'error' | 'info', text: string, details?: any) => {
+    setMessage({ type, text, details });
+    setTimeout(() => setMessage(null), 5000); // Show for 5 seconds
+  };
+
+  const getAllDrafts = async () => {
+    try {
+      console.log('Fetching drafts...');
+      const response = await invoiceDraftService.getAllInvoiceDrafts();
+      console.log('Drafts response:', response);
+      console.log('Drafts data structure:', response.data);
+      if (response.data && response.data.length > 0) {
+        console.log('First draft structure:', response.data[0]);
+        console.log('First draft total type:', typeof response.data[0].total);
+        console.log('First draft total value:', response.data[0].total);
+      }
+      setInvoiceDrafts(response.data || []);
+      console.log('Drafts set to:', response.data || []);
+    } catch (error) {
+      console.error("Error fetching drafts:", error);
+    }
+  };
+
+  const handleDraftsButtonClick = () => {
+    console.log('Drafts button clicked');
+    console.log('Current showDraftsModal state:', showDraftsModal);
+    console.log('Current invoiceDrafts:', invoiceDrafts);
+    setShowDraftsModal(true);
+  };
+
+  const handleSaveDraft = async () => {
+    if (billingItems.length === 0) {
+      showMessage('error', 'No items in billing to save');
+      return;
+    }
+
+    if (!paymentDetails.paymentMethod) {
+      showMessage('error', 'Please select a payment method');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const draftData: any = {
+        subtotal: Number(paymentDetails.subtotal),
+        discount: Number(paymentDetails.discount),
+        tax: Number(paymentDetails.gst),
+        total: Number(paymentDetails.total),
+        paymentMode: paymentDetails.paymentMethod.toLowerCase() as 'cash' | 'card' | 'upi' | 'cheque' | 'bank',
+        status: 'draft' as 'draft' | 'saved',
+        items: billingItems.map(item => ({
+          variantId: item.variantId,
+          quantity: item.quantity,
+          total: item.total,
+        })),
+      };
+
+      // Only add customer information if both name and phone are provided
+      if (customerInfo.name && customerInfo.name.trim() && customerInfo.phone && customerInfo.phone.trim()) {
+        draftData.customerName = customerInfo.name.trim();
+        draftData.customerPhone = customerInfo.phone.trim();
+      }
+
+      console.log('Saving draft with data:', JSON.stringify(draftData, null, 2));
+      console.log('Billing items:', billingItems);
+      console.log('Payment details:', paymentDetails);
+      
+      const response = await invoiceDraftService.createInvoiceDraft(draftData);
+      console.log('Draft saved successfully:', response);
+      
+      showMessage('success', 'Invoice saved as draft successfully!', {
+        draftNumber: response.data?.draft?.draftNumber || 'Draft-' + response.data?.draft?.id?.slice(0, 8),
+        customerName: customerInfo.name || 'No Customer',
+        total: paymentDetails.total,
+        itemsCount: billingItems.length,
+        paymentMode: paymentDetails.paymentMethod
+      });
+      handleNewInvoice();
+      getAllDrafts();
+    } catch (error: any) {
+      console.error('Error saving draft:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      showMessage('error', error.message || 'Failed to save draft');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrintAndSave = async () => {
+    if (billingItems.length === 0) {
+      showMessage('error', 'No items in billing to save');
+      return;
+    }
+
+    if (!paymentDetails.paymentMethod) {
+      showMessage('error', 'Please select a payment method');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const invoiceData: any = {
+        subtotal: Number(paymentDetails.subtotal),
+        discount: Number(paymentDetails.discount),
+        tax: Number(paymentDetails.gst),
+        total: Number(paymentDetails.total),
+        paymentMode: paymentDetails.paymentMethod.toLowerCase() as 'cash' | 'card' | 'upi' | 'cheque' | 'bank',
+        status: 'paid' as 'pending' | 'paid' | 'cancelled',
+        items: billingItems.map(item => ({
+          variantId: item.variantId,
+          quantity: item.quantity,
+          total: item.total,
+        })),
+      };
+
+      // Only add customer information if both name and phone are provided
+      if (customerInfo.name && customerInfo.name.trim() && customerInfo.phone && customerInfo.phone.trim()) {
+        invoiceData.customerName = customerInfo.name.trim();
+        invoiceData.customerPhone = customerInfo.phone.trim();
+      }
+
+      console.log('Creating final invoice with data:', JSON.stringify(invoiceData, null, 2));
+      
+      const response = await invoiceService.createInvoiceWithItems(invoiceData);
+      console.log('Invoice created successfully:', response);
+      
+      showMessage('success', 'Invoice created and printed successfully!', {
+        invoiceNumber: response.data?.invoice?.invoiceNumber || 'INV-' + response.data?.invoice?.id?.slice(0, 8),
+        customerName: customerInfo.name || 'No Customer',
+        total: paymentDetails.total,
+        itemsCount: billingItems.length,
+        paymentMode: paymentDetails.paymentMethod
+      });
+      handleNewInvoice();
+    } catch (error: any) {
+      console.error('Error creating invoice:', error);
+      showMessage('error', error.message || 'Failed to create invoice');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConvertDraftToInvoice = async (draftId: string) => {
+    if (!confirm('Are you sure you want to convert this draft to a final invoice? This will reduce stock and cannot be undone.')) {
+      return;
+    }
+    
+    // Find the draft details before converting
+    const draftToConvert = invoiceDrafts.find(draft => draft.id === draftId);
+    
+    setLoading(true);
+    try {
+      const response = await invoiceDraftService.convertDraftToInvoice(draftId);
+      console.log('Draft converted to invoice successfully:', response);
+      
+      showMessage('success', 'Draft converted to invoice successfully!', {
+        invoiceNumber: response.data?.invoiceNumber || 'INV-' + response.data?.id?.slice(0, 8),
+        customerName: draftToConvert?.customerName || 'No Customer',
+        total: draftToConvert?.total || 0,
+        itemsCount: draftToConvert?.items?.length || 0,
+        paymentMode: draftToConvert?.paymentMode || 'Unknown'
+      });
+      setShowDraftsModal(false);
+      getAllDrafts();
+    } catch (error: any) {
+      console.error('Error converting draft to invoice:', error);
+      showMessage('error', error.message || 'Failed to convert draft to invoice');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadDraft = async (draftId: string) => {
+    setLoading(true);
+    try {
+      console.log('Loading draft with ID:', draftId);
+      const response = await invoiceDraftService.getInvoiceDraftById(draftId);
+      console.log('Raw response from backend:', response);
+      const draft = response.data;
+      console.log('Loaded draft data:', draft);
+      console.log('Draft keys:', Object.keys(draft));
+      console.log('Full draft object:', JSON.stringify(draft, null, 2));
+      console.log('Draft customer info:', {
+        customerName: draft.customerName,
+        customerPhone: draft.customerPhone,
+        customer: draft.customer
+      });
+      console.log('Draft.items:', draft.items);
+      console.log('Draft.InvoiceDraftItems:', draft.InvoiceDraftItems);
+      console.log('Draft.invoice_draft_items:', draft.invoice_draft_items);
+      console.log('Draft.InvoiceDraftItem:', draft.InvoiceDraftItem);
+      
+      // Load draft data - use customerName and customerPhone from the formatted response
+      setCustomerInfo({
+        name: draft.customerName || '',
+        phone: draft.customerPhone || '',
+        gst: draft.tax > 0,
+        discountPercentage: draft.discount > 0 ? (draft.discount / draft.subtotal) * 100 : 0,
+      });
+      
+      const paymentData = {
+        paymentMethod: draft.paymentMode || '',
+        subtotal: Number(draft.subtotal) || 0,
+        discount: Number(draft.discount) || 0,
+        gst: Number(draft.tax) || 0,
+        total: Number(draft.total) || 0,
+      };
+      console.log('Setting payment details:', paymentData);
+      setPaymentDetails(paymentData);
+
+      // Load items if they exist - use the correct alias "items"
+      const draftItems = draft.items || draft.InvoiceDraftItems || draft.invoice_draft_items || draft.InvoiceDraftItem || draft.invoice_draft_item || [];
+      console.log('Draft items found:', draftItems);
+      
+      if (draftItems && draftItems.length > 0) {
+        console.log('Loading draft items:', draftItems);
+        
+        // We need to fetch the product details for each item
+        const loadedItems = await Promise.all(
+          draftItems.map(async (item: any) => {
+            try {
+              console.log('Loading item details for variantId:', item.variantId);
+              // Get product variant details
+              const variantResponse = await fetch(`${API_URL}/product-variants/${item.variantId}`);
+              if (variantResponse.ok) {
+                const variantData = await variantResponse.json();
+                console.log('Variant data for', item.variantId, ':', variantData);
+                
+                const billingItem = {
+                  id: item.variantId,
+                  productId: variantData.data.productId,
+                  variantId: item.variantId,
+                  productName: variantData.data.product?.name || 'Unknown Product',
+                  size: variantData.data.size,
+                  color: variantData.data.color,
+                  quantity: Number(item.quantity) || 1,
+                  unitPrice: Number(variantData.data.price) || 0,
+                  total: Number(item.total) || 0,
+                  barcode: variantData.data.barcode,
+                  stock_qty: Number(variantData.data.stock_qty) || 0,
+                };
+                console.log('Created billing item:', billingItem);
+                return billingItem;
+              } else {
+                console.error('Failed to fetch variant data for:', item.variantId);
+              }
+            } catch (error) {
+              console.error('Error loading item details for variantId:', item.variantId, error);
+            }
+            return null;
+          })
+        );
+        
+        const validItems = loadedItems.filter(item => item !== null);
+        console.log('Setting billing items:', validItems);
+        setBillingItems(validItems);
+      } else {
+        console.log('No draft items found, clearing billing items');
+        setBillingItems([]);
+      }
+      
+      showMessage('success', 'Draft loaded successfully!', {
+        draftNumber: draft.draftNumber || 'Draft-' + draft.id?.slice(0, 8),
+        customerName: draft.customerName || 'No Customer',
+        total: draft.total || 0,
+        itemsCount: draftItems?.length || 0,
+        paymentMode: draft.paymentMode || 'Unknown'
+      });
+      setShowDraftsModal(false);
+    } catch (error: any) {
+      console.error('Error loading draft:', error);
+      showMessage('error', error.message || 'Failed to load draft');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteDraft = async (draftId: string) => {
+    if (!confirm('Are you sure you want to delete this draft? This action cannot be undone.')) return;
+    
+    // Find the draft details before deleting
+    const draftToDelete = invoiceDrafts.find(draft => draft.id === draftId);
+    
+    setLoading(true);
+    try {
+      await invoiceDraftService.deleteInvoiceDraft(draftId);
+      showMessage('success', 'Draft deleted successfully!', {
+        draftNumber: draftToDelete?.draftNumber || 'Draft-' + draftId?.slice(0, 8),
+        customerName: draftToDelete?.customerName || 'No Customer',
+        total: draftToDelete?.total || 0
+      });
+      getAllDrafts();
+    } catch (error: any) {
+      showMessage('error', error.message || 'Failed to delete draft');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNewInvoice = () => {
+    setBillingItems([]);
+    setCustomerInfo({
+      name: '',
+      phone: '',
+      gst: false,
+      discountPercentage: 0,
+    });
+    setPaymentDetails({
+      paymentMethod: '',
+      subtotal: 0,
+      discount: 0,
+      gst: 0,
+      total: 0,
+    });
+    setProduct(null);
+    setSearchBarcode('');
+    showMessage('success', 'New invoice created');
+  };
+
+  const addToBilling = (item: any) => {
+    // Handle different data structures from barcode API vs product search
+    const itemId = item.id || item.variantId;
+    const productName = item.product?.name || item.productName;
+    const price = Number(item.price);
+    const stockQty = item.stock_qty;
+    
+    const existingItem = billingItems.find(
+      billingItem => billingItem.variantId === itemId
+    );
+
+    if (existingItem) {
+      if (existingItem.quantity < stockQty) {
+        const updatedItems = billingItems.map(billingItem =>
+          billingItem.variantId === itemId
+            ? {
+                ...billingItem,
+                quantity: billingItem.quantity + 1,
+                total: Number((billingItem.quantity + 1) * billingItem.unitPrice),
+              }
+            : billingItem
+        );
+        setBillingItems(updatedItems);
+        showMessage('success', `${productName} quantity increased`);
+      } else {
+        showMessage('error', 'Cannot add more items - stock limit reached');
+      }
+    } else {
+      const newItem: BillingItem = {
+        id: itemId,
+        productId: item.productId,
+        variantId: itemId,
+        productName: productName,
+        size: item.size,
+        color: item.color,
+        quantity: 1,
+        unitPrice: price,
+        total: price,
+        barcode: item.barcode,
+        stock_qty: stockQty,
+      };
+      setBillingItems(prev => [...prev, newItem]);
+      showMessage('success', `${productName} added to billing`);
+    }
+  };
+
+  const handleQuantityChange = (variantId: string, newQuantity: number) => {
+    const item = billingItems.find(item => item.variantId === variantId);
+    if (!item) return;
+
+    if (newQuantity <= 0) {
+      setBillingItems(prev => prev.filter(item => item.variantId !== variantId));
+      showMessage('info', 'Item removed from billing');
+    } else if (newQuantity <= item.stock_qty) {
+      const updatedItems = billingItems.map(billingItem =>
+        billingItem.variantId === variantId
+          ? {
+              ...billingItem,
+              quantity: newQuantity,
+              total: Number(newQuantity * billingItem.unitPrice),
+            }
+          : billingItem
+      );
+      setBillingItems(updatedItems);
+    } else {
+      showMessage('error', 'Cannot exceed available stock');
+    }
+  };
+
+  const handleRemoveItem = (variantId: string) => {
+    setBillingItems(prev => prev.filter(item => item.variantId !== variantId));
+    showMessage('info', 'Item removed from billing');
+  };
+
+  const handleSearchBarcode = async () => {
+    if (!searchBarcode.trim()) {
+      showMessage('error', 'Please enter a barcode');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await invoiceService.getItemByBarcode(searchBarcode);
+      setProduct(response);
+      // Automatically add to billing when barcode is scanned
+      addToBilling(response);
+      setSearchBarcode(''); // Clear the barcode input
+      showMessage('success', 'Product found and added to billing!');
+    } catch (error: any) {
+      showMessage('error', error.message || 'Product not found');
+      setProduct(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearchBarcode();
+    }
+  };
+
+  const getAllProducts = async () => {
+    try {
+      const response = await ProductService.getAllVariants();
+      setAllProducts(response);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    }
+  };
+
+  const getAllCustomers = async () => {
+    try {
+      const response = await invoiceService.getAllCustomers();
+      setAllCustomers(response.data);
+      console.log(response.data);
+
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+    }
+  };
+
+  const handleCustomerSearch = (e: any) => {
+    setCustomerSearch(e.target.value);
+    if(e.target.value.length > 0){
+      setCustomerToggle(true)
+    }else{
+      setCustomerToggle(false)
+    }
+  }
+
+  const handleCustomerSelect = (customer: any) => {
+    setCustomerInfo(prev => ({
+      ...prev,
+      name: customer.name,
+      phone: customer.phone,
+    }));
+    setCustomerSearch(customer.name);
+    setCustomerToggle(false);
+    showMessage('success', `Customer ${customer.name} selected`);
+  };
+  
+  const filterProducts = allProducts.filter((item: any) => {
+    return (
+      item.product.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
+      item.size.toLowerCase().includes(searchProduct.toLowerCase()) ||
+      item.color.toLowerCase().includes(searchProduct.toLowerCase()) ||
+      item.barcode.toLowerCase().includes(searchProduct.toLowerCase()) ||
+      item.product.category.name
+        .toLowerCase()
+        .includes(searchProduct.toLowerCase()) ||
+      item.product.brand.name
+        .toLowerCase()
+        .includes(searchProduct.toLowerCase())
+    );
+  });
+
+  useEffect(() => {
+    getAllProducts();
+    getAllCustomers();
+    getAllDrafts();
+  }, []);
 
   return (
     <div className="dashboard">
-      <div className="dashboard-header">
-        <div className="dashboard-title">
-          <h1>Dashboard</h1>
-          <p>Welcome back! Here's what's happening with your inventory today.</p>
-        </div>
-        <div className="current-time">
-          <div className="time-display">
-            {format(currentTime, 'EEEE, MMMM d, yyyy')}
-          </div>
-          <div className="time-display time-large">
-            {format(currentTime, 'HH:mm:ss')}
-          </div>
-        </div>
-      </div>
+      {/* Message Display */}
+      {message && (
+        <Toast
+          type={message.type}
+          text={message.text}
+          details={message.details}
+          onClose={() => setMessage(null)}
+        />
+      )}
 
-      <div className="stats-grid">
-        <StatCard
-          title="Total Products"
-          value={state.stats.totalProducts}
-          icon={Package}
-          trend={{ value: 12, isPositive: true }}
-          color="blue"
-        />
-        <StatCard
-          title="Total Categories"
-          value={state.stats.totalCategories}
-          icon={Folder}
-          color="green"
-        />
-        <StatCard
-          title="Total Brands"
-          value={state.stats.totalBrands}
-          icon={Tag}
-          color="purple"
-        />
-        <StatCard
-          title="Sales Today"
-          value={`₹${state.stats.totalSalesToday.toLocaleString()}`}
-          icon={DollarSign}
-          trend={{ value: 8, isPositive: true }}
-          color="green"
-        />
-        <StatCard
-          title="Total Invoices"
-          value={state.stats.totalInvoices}
-          icon={FileText}
-          color="blue"
-        />
-        <StatCard
-          title="Inventory Value"
-          value={`₹${state.stats.inventoryValue.toLocaleString()}`}
-          icon={TrendingUp}
-          color="green"
-        />
-        <StatCard
-          title="Out of Stock"
-          value={state.stats.outOfStockCount}
-          icon={AlertTriangle}
-          color="red"
-        />
-        <StatCard
-          title="Low Stock Alert"
-          value={state.stats.lowStockCount}
-          icon={AlertTriangle}
-          trend={{ value: 15, isPositive: false }}
-          color="orange"
-        />
-      </div>
-
-      <div className="dashboard-content">
-        <div className="chart-section">
-          <div className="chart-card">
-            <div className="chart-header">
-              <h3>Sales Overview</h3>
-              <div className="chart-controls">
-                <button className="chart-control-btn active">Daily</button>
-                <button className="chart-control-btn">Weekly</button>
-                <button className="chart-control-btn">Monthly</button>
-              </div>
+      {/* Drafts Modal */}
+      {showDraftsModal && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <div className="modal-header">
+              <h2 className="modal-title">
+                Invoice Drafts ({invoiceDrafts.length})
+              </h2>
+              <button 
+                className="modal-close"
+                onClick={() => setShowDraftsModal(false)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
             </div>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={salesData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickFormatter={(value) => format(new Date(value), 'MMM dd')} />
-                  <YAxis />
-                  <Tooltip 
-                    labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy')}
-                    formatter={(value: any, name: string) => [
-                      name === 'sales' ? value : `₹${value.toLocaleString()}`,
-                      name === 'sales' ? 'Sales' : 'Revenue'
-                    ]}
-                  />
-                  <Line type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={2} />
-                  <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="chart-card">
-            <div className="chart-header">
-              <h3>Stock by Category</h3>
-            </div>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={stockByCategory}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="stock" fill="#2563eb" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        <div className="dashboard-sidebar">
-          <div className="dashboard-card">
-            <div className="card-header">
-              <h3>Low Stock Alert</h3>
-              <Eye size={20} />
-            </div>
-            <div className="low-stock-list">
-              {lowStockProducts.length > 0 ? (
-                lowStockProducts.map((item, index) => (
-                  <div key={index} className="low-stock-item">
-                    <div className="low-stock-info">
-                      <div className="product-name">{item.productName}</div>
-                      <div className="product-variant">{item.size} • {item.color}</div>
-                      <div className="product-price">₹{item.price.toLocaleString()}</div>
+            <div className="modal-content">
+              {invoiceDrafts.length > 0 ? (
+                invoiceDrafts.map((draft) => (
+                  <div 
+                    key={draft.id} 
+                    className="draft-card"
+                  >
+                    <div className="draft-card-header">
+                      <div>
+                        <h3 className="draft-card-title">
+                          {draft.draftNumber || 'Draft-' + draft.id?.slice(0, 8)}
+                        </h3>
+                        <p className="draft-card-meta">
+                          {draft.customerName || 'No Customer'} • {draft.customerPhone || 'No Phone'}
+                        </p>
+                        <p className="draft-card-date">
+                          {draft.createdAt ? format(new Date(draft.createdAt), 'MMM dd, yyyy HH:mm') : 'Unknown Date'}
+                        </p>
+                      </div>
+                      <div className="draft-card-amount-container">
+                        <p className="draft-card-amount">
+                          ₹{(Number(draft.total) || 0).toFixed(2)}
+                        </p>
+                        <p className="draft-card-payment">
+                          {draft.paymentMode || 'Unknown'}
+                        </p>
+                      </div>
                     </div>
-                    <div className={`stock-badge ${item.stock <= 5 ? 'stock-critical' : 'stock-low'}`}>
-                      {item.stock} left
+                    <div className="draft-card-actions">
+                      <button 
+                        className="draft-btn load"
+                        onClick={() => handleLoadDraft(draft.id)}
+                        disabled={loading}
+                      >
+                        <RotateCcw size={14} />
+                        Load
+                      </button>
+                      <button 
+                        className="draft-btn convert"
+                        onClick={() => handleConvertDraftToInvoice(draft.id)}
+                        disabled={loading}
+                      >
+                        <Printer size={14} />
+                        Convert to Invoice
+                      </button>
+                      <button 
+                        className="draft-btn delete"
+                        onClick={() => handleDeleteDraft(draft.id)}
+                        disabled={loading}
+                      >
+                        <Trash size={14} />
+                        Delete
+                      </button>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="no-low-stock">No low stock items</div>
+                <div className="modal-empty-state">
+                  <FileText size={48} className="modal-empty-icon" />
+                  <p className="modal-empty-title">No drafts available</p>
+                  <p className="modal-empty-subtitle">Save your first invoice as a draft</p>
+                </div>
               )}
             </div>
-            <button className="view-all-btn">View All Low Stock</button>
           </div>
+        </div>
+      )}
 
-          <div className="quick-actions">
-            <h3>Quick Actions</h3>
-            <div className="quick-action-buttons">
-              <button className="quick-action-btn">
-                <Package size={20} />
-                Add Product
-              </button>
-              <button className="quick-action-btn">
-                <FileText size={20} />
-                Create Invoice
-              </button>
-              <button className="quick-action-btn">
-                <TrendingUp size={20} />
-                Generate Report
+      <div className="dashboard-header">
+        <div className="dashboard-title">
+          <h1>Dashboard</h1>
+          <p>
+            Welcome back! Here's what's happening with your inventory today.
+          </p>
+        </div>
+        <div className="current-time">
+          <div className="time-display">
+            {format(currentTime, "EEEE, MMMM d, yyyy")}
+          </div>
+          <div className="time-display time-large">
+            {format(currentTime, "HH:mm:ss")}
+          </div>
+        </div>
+      </div>
+
+      <div className="search-barcode">
+        <div className="search">
+          <input
+            type="text"
+            placeholder="Search Barcode"
+            value={searchBarcode}
+            onChange={(e) => setSearchBarcode(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="barcode-input"
+          />
+          <button 
+            className="btn-barcode-search" 
+            onClick={handleSearchBarcode}
+            disabled={loading}
+          >
+            <Scan size={18} />
+            {loading ? 'Scanning...' : 'Scan'}
+          </button>
+        </div>
+
+        <div className="draft-invoice">
+          <button 
+            onClick={handleNewInvoice}
+            className="btn-new-invoice"
+          >
+            <Plus size={20} /> New Invoice
+          </button>
+          <button 
+            onClick={handleDraftsButtonClick}
+            className="btn-drafts"
+          >
+            <FileText size={20} /> Drafts ({invoiceDrafts.length})
+          </button>
+        </div>
+      </div>
+
+      <div className="main-dashboard-container">
+        <div className="left">
+          <h2>Product Search</h2>
+          <div className="search-product">
+            <input
+              type="text"
+              placeholder="Search Product"
+              value={searchProduct}
+              onChange={(e) => setSearchProduct(e.target.value)}
+              className="product-search-input"
+            />
+          </div>
+          <div className="products-card">
+          {filterProducts.map((item: any) => (
+            <div className="product-card" key={item.id}>
+              <Shirt size={20} />
+              <h3>{item.product.name}</h3>
+              <p>
+                {item.size} - {item.color}
+              </p>
+              <p>₹{item.price}</p>
+              <p>Stock: {item.stock_qty}</p>
+              <code>Barcode: {item.barcode}</code>
+              <button 
+                onClick={() => addToBilling(item)}
+                disabled={item.stock_qty <= 0}
+                className={`btn-add-billing ${item.stock_qty <= 0 ? 'disabled' : ''}`}
+              >
+                {item.stock_qty > 0 ? 'Add To Billing' : 'Out of Stock'}
               </button>
             </div>
+          ))}
+          </div>
+        </div>
+
+        <div className="right">
+          <div className="head">
+            <h2>Current Invoice</h2>
+            <p>{billingItems.length} items Total: ₹{(Number(paymentDetails.total) || 0).toFixed(2)}</p>
+          </div>
+          <div className="invoice-items">
+            {billingItems.length > 0 ? (
+              billingItems.map((item) => (
+                <div className="invoice-item" key={item.variantId}>
+                  <ShoppingBag size={20} />
+                  <div className="invoice-item-info">
+                    <h5>{item.productName}</h5>
+                    <p>{item.size} - {item.color}</p>
+                    <p>₹{item.unitPrice}</p>
+                  </div>
+                  <div className="invoice-item-actions">
+                    <button 
+                      onClick={() => handleQuantityChange(item.variantId, item.quantity - 1)}
+                      disabled={item.quantity <= 1}
+                      className={`btn-quantity btn-decrease ${item.quantity <= 1 ? 'disabled' : ''}`}
+                    >
+                      <Minus size={10} />
+                    </button>
+                    <p>{item.quantity}</p>
+                    <button 
+                      onClick={() => handleQuantityChange(item.variantId, item.quantity + 1)}
+                      disabled={item.quantity >= item.stock_qty}
+                      className={`btn-quantity btn-increase ${item.quantity >= item.stock_qty ? 'disabled' : ''}`}
+                    >
+                      <Plus size={10} />
+                    </button>
+                  </div>
+                  <div className="total-price">
+                    <p>₹{(Number(item.total) || 0).toFixed(2)}</p>
+                  </div>
+                  <Trash 
+                    className="trash-icon" 
+                    size={23} 
+                    onClick={() => handleRemoveItem(item.variantId)}
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="empty-billing">
+                No items in billing
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="payment-section">
+        <div className="customer-info">
+          <div className="head">
+            <h2>Customer Info</h2>
+            <button className="btn-add-customer">
+              <Plus size={15} />
+              <p>Add Customer</p>
+            </button>
+          </div>
+          <div className="search-customer">
+            <input 
+              type="text" 
+              placeholder="Search Customer" 
+              value={customerSearch} 
+              onChange={handleCustomerSearch}
+              className="customer-search-input"
+            />
+            <div className={`exist-customers ${customerToggle ? 'active' : ''}`}>
+              {allCustomers?.filter((customer: any) => {
+                return customer?.name?.toLowerCase().includes(customerSearch.toLowerCase()) || customer?.phone?.toLowerCase().includes(customerSearch.toLowerCase())
+              }).map((customer: any) => (
+                <div 
+                  className="customer-info-item" 
+                  key={customer.id}
+                  onClick={() => handleCustomerSelect(customer)}
+                >
+                  <p>{customer.name}</p>
+                  <p>{customer.phone}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="customer-details">
+            <input 
+              type="text" 
+              placeholder="Customer Name" 
+              value={customerInfo.name}
+              onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
+              className="customer-input"
+            />
+            <input 
+              type="text" 
+              placeholder="Phone Number" 
+              value={customerInfo.phone}
+              onChange={(e) => setCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
+              className="customer-input"
+            />
+            <div className={`gst-toggle ${customerInfo.gst ? 'active' : ''}`}>
+              <div 
+                className="toggle-switch"
+                onClick={() => setCustomerInfo(prev => ({ ...prev, gst: !prev.gst }))}
+              >
+                <div className="toggle-slider" />
+              </div>
+              <div className="gst-label">
+                <p>GST (18%)</p>
+                {customerInfo.gst && (
+                  <span className="gst-badge">Active</span>
+                )}
+              </div>
+            </div>
+            <div className="discount-input-container">
+              <input 
+                type="number" 
+                placeholder="Discount Percentage (%)" 
+                value={customerInfo.discountPercentage === 0 ? '' : customerInfo.discountPercentage}
+                onChange={(e) => setCustomerInfo(prev => ({ 
+                  ...prev, 
+                  discountPercentage: parseFloat(e.target.value) || 0 
+                }))}
+                min="0"
+                max="100"
+                className={`discount-input ${customerInfo.discountPercentage > 0 ? 'has-discount' : ''}`}
+              />
+              <div className="discount-suffix">
+                {customerInfo.discountPercentage > 0 && (
+                  <span className="discount-badge">
+                    {customerInfo.discountPercentage}%
+                  </span>
+                )}
+                <span className="percent-symbol">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="payment-details">
+          <h2>Payment Summary</h2>
+          <div className="amount-details">
+            <div className="items">
+              <p>Items</p>
+              <p>{billingItems.length}</p>
+            </div>
+            <div className="sub-total">
+              <p>Sub Total</p>
+              <p>₹{(Number(paymentDetails.subtotal) || 0).toFixed(2)}</p>
+            </div>
+            <div className="discount">
+              <p>Discount</p>
+              <p>₹{(Number(paymentDetails.discount) || 0).toFixed(2)}</p>
+            </div>
+            <div className="gst">
+              <p>GST</p>
+              <p>₹{(Number(paymentDetails.gst) || 0).toFixed(2)}</p>
+            </div>
+            <div className="total">
+              <p>Total</p>
+              <p>₹{(Number(paymentDetails.total) || 0).toFixed(2)}</p>
+            </div>
+            <select 
+              value={paymentDetails.paymentMethod}
+              onChange={(e) => setPaymentDetails(prev => ({ 
+                ...prev, 
+                paymentMethod: e.target.value 
+              }))}
+              className="payment-method-select"
+            >
+              <option value="" disabled>Select Payment Method</option>
+              <option value="cash">Cash</option>
+              <option value="card">Card</option>
+              <option value="upi">UPI</option>
+              <option value="bank">Bank</option>
+            </select>
+          </div>
+          <div className="buttons">
+            <button 
+              onClick={handleSaveDraft}
+              disabled={loading || billingItems.length === 0}
+              className={`btn-save-draft ${loading || billingItems.length === 0 ? 'disabled' : ''}`}
+            >
+              <Save size={20} /> Save As Draft
+            </button>
+            <button 
+              onClick={handlePrintAndSave}
+              disabled={loading || billingItems.length === 0}
+              className={`btn-print-save ${loading || billingItems.length === 0 ? 'disabled' : ''}`}
+            >
+              <Printer size={20} /> Save & Print
+            </button>
           </div>
         </div>
       </div>

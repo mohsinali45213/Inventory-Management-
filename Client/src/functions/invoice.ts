@@ -15,6 +15,24 @@ const createInvoice = async (invoice: Invoice): Promise<Invoice> => {
   return response.json();
 };
 
+const createInvoiceWithItems = async (invoiceData: any): Promise<any> => {
+  const response = await fetch(`${API_URL}/invoices`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(invoiceData),
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
+    throw new Error(errorMessage);
+  }
+  
+  return response.json();
+};
+
 const getAllInvoices = async (): Promise<Invoice[]> => {
   const response = await fetch(`${API_URL}/invoices`, {
     method: 'GET',
@@ -85,12 +103,22 @@ export const getItemByBarcode = async (barcode: string) => {
   return result.data; // should contain productId, variantId, productName, size, color, price, stock_qty
 };
 
+export const getAllCustomers = async () => {
+  const response = await fetch(`${API_URL}/customers`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch customers");
+  }
+  return response.json();
+};
+
 
 
 
 
 const invoiceService = {
-  createInvoice,      
+  getAllCustomers,
+  createInvoice,
+  createInvoiceWithItems,
   getAllInvoices,
   getInvoiceById,
   updateInvoice,

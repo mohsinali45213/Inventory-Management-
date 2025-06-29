@@ -1,11 +1,5 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
-import InvoiceDraft from "./invoice_draft.models.js";
-import ProductVariant from "./productVariant.models.js"; // Assuming you have a ProductVariant model defined
-
-
-
-
 
 const InvoiceDraftItem = sequelize.define(
   "invoice_draft_item",
@@ -54,11 +48,16 @@ const InvoiceDraftItem = sequelize.define(
   }
 );
 
-
-InvoiceDraftItem.belongsTo(InvoiceDraft, { foreignKey: "draftId" });
-InvoiceDraft.hasMany(InvoiceDraftItem, { foreignKey: "draftId" });
-
-InvoiceDraftItem.belongsTo(ProductVariant, { foreignKey: "variantId" });
-ProductVariant.hasMany(InvoiceDraftItem, { foreignKey: "variantId" });
+// Association method
+InvoiceDraftItem.associate = (models) => {
+  InvoiceDraftItem.belongsTo(models.InvoiceDraft, { 
+    foreignKey: "draftId",
+    as: "draft",
+  });
+  InvoiceDraftItem.belongsTo(models.ProductVariant, { 
+    foreignKey: "variantId",
+    as: "variant",
+  });
+};
 
 export default InvoiceDraftItem;

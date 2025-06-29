@@ -59,10 +59,12 @@ export const getAllInvoiceDraftItems = async (req, res) => {
       include: [
         {
           model: ProductVariant,
+          as: "variant",
           include: [{ model: Product, as: "product" }],
         },
         {
           model: InvoiceDraft,
+          as: "draft",
         },
       ],
       order: [["createdAt", "DESC"]],
@@ -124,7 +126,10 @@ export const updateInvoiceDraftItem = async (req, res) => {
     const { quantity } = req.body;
 
     const item = await InvoiceDraftItem.findByPk(id, {
-      include: [{ model: ProductVariant }],
+      include: [{ 
+        model: ProductVariant,
+        as: "variant",
+      }],
     });
 
     if (!item) {

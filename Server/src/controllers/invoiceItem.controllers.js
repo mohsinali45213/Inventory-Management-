@@ -55,9 +55,11 @@ export const getAllInvoiceItems = async (req, res) => {
       include: [
         {
           model: ProductVariant,
+          as: "variant",
         },
         {
           model: Invoice,
+          as: "invoice",
         },
       ],
     });
@@ -82,7 +84,10 @@ export const getInvoiceItemsByInvoiceId = async (req, res) => {
 
     const items = await InvoiceItem.findAll({
       where: { invoiceId },
-      include: [{ model: ProductVariant }],
+      include: [{ 
+        model: ProductVariant,
+        as: "variant",
+      }],
     });
 
     res.status(200).json({

@@ -26,4 +26,16 @@ const Customer = sequelize.define(
   { tableName: "customers", timestamps: true }
 );
 
+// Association method
+Customer.associate = (models) => {
+  Customer.hasMany(models.Invoice, { 
+    foreignKey: "customerId",
+    as: "invoices",
+  });
+  Customer.hasMany(models.InvoiceDraft, { 
+    foreignKey: "customerId",
+    as: "drafts",
+  });
+};
+
 export default Customer;

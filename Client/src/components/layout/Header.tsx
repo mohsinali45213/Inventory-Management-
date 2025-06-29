@@ -6,6 +6,7 @@ import ProductService from "../../functions/product";
 import BransService from "../../functions/brand";
 import CategoryService from "../../functions/category";
 import SubCategoryService from "../../functions/subCategory";
+import { Link } from "react-router-dom";
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
@@ -125,12 +126,13 @@ const Header: React.FC = () => {
 
             {showQuickAdd && (
               <div className="dropdown-menu">
-                <button className="dropdown-item" onClick={() => {
-                  setTriggerAddModal(true);
-                }}>
+                <Link to="/products">
+                  <button className="dropdown-item" onClick={() => {
+                    setTriggerAddModal(true);
+                  }}>
                   <Plus size={16} />
                   Add Product
-                </button>
+                </button></Link>
                 <button className="dropdown-item">Create Invoice</button>
                 <button className="dropdown-item">Add Category</button>
                 <button className="dropdown-item">Add Brand</button>

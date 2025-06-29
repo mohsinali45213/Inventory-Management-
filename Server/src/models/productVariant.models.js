@@ -57,5 +57,13 @@ ProductVariant.associate = (models) => {
     foreignKey: "productId",
     as: "product",
   });
+  ProductVariant.hasMany(models.InvoiceItem, { 
+    foreignKey: "variantId",
+    as: "invoiceItems",
+  });
+  ProductVariant.hasMany(models.InvoiceDraftItem, { 
+    foreignKey: "variantId",
+    as: "draftItems",
+  });
 };
 export default ProductVariant;

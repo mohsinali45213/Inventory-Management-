@@ -2,13 +2,6 @@ import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
 import Customer from "./customers.models.js"; // Assuming you have a Customer model defined
 
-
-
-
-
-
-
-
 const InvoiceDraft = sequelize.define(
   "invoice_draft",
   {
@@ -60,7 +53,7 @@ const InvoiceDraft = sequelize.define(
     },
 
     paymentMode: {
-      type: DataTypes.ENUM("cash", "card", "upi", "cheque"),
+      type: DataTypes.ENUM("cash", "card", "upi", "cheque", "bank"),
       allowNull: true, // optional at draft stage
     },
 
@@ -75,7 +68,16 @@ const InvoiceDraft = sequelize.define(
   }
 );
 
-InvoiceDraft.belongsTo(Customer, { foreignKey: "customerId" });
-Customer.hasMany(InvoiceDraft, { foreignKey: "customerId" });
+// Association method
+InvoiceDraft.associate = (models) => {
+  InvoiceDraft.belongsTo(models.Customer, { 
+    foreignKey: "customerId",
+    as: "customer",
+  });
+  InvoiceDraft.hasMany(models.InvoiceDraftItem, { 
+    foreignKey: "draftId",
+    as: "items",
+  });
+};
 
 export default InvoiceDraft;

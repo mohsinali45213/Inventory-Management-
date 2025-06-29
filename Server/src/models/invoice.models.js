@@ -44,7 +44,7 @@ const Invoice = sequelize.define("invoice", {
     defaultValue: 0.0,
   },
   paymentMode: {
-    type: DataTypes.ENUM("cash", "card", "upi", "cheque"),
+    type: DataTypes.ENUM("cash", "card", "upi", "cheque", "bank"),
     allowNull: false,
   },
   status: {
@@ -67,8 +67,10 @@ const Invoice = sequelize.define("invoice", {
 //   });
 // };
 Invoice.associate = (models) => {
-  Invoice.belongsTo(models.Customer, { foreignKey: "customerId" });
-  models.Customer.hasMany(Invoice, { foreignKey: "customerId" });
+  Invoice.belongsTo(models.Customer, { 
+    foreignKey: "customerId",
+    as: "customer",
+  });
 
   // ✅ Use exact alias
   Invoice.hasMany(models.InvoiceItem, {

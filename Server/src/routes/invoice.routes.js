@@ -29,12 +29,16 @@ import {
   // updateInvoice,
   deleteInvoice,
   getItemByBarcode,
+  convertDraftToInvoice,
 } from "../controllers/invoice.controllers.js";
 
 const invoiceRouter = express.Router();
 
 // ✅ Create a new invoice
 invoiceRouter.post("/", createInvoiceWithItems);
+
+// ✅ Convert draft to final invoice (Print & Save)
+invoiceRouter.post("/convert-draft", convertDraftToInvoice);
 
 // ✅ Get all invoices
 invoiceRouter.get("/", getAllInvoicesWithItems);
