@@ -82,6 +82,7 @@ const Dashboard: React.FC = () => {
   const [allCustomers, setAllCustomers] = useState<any>([]);
   const [customerToggle, setCustomerToggle] = useState<any>(false)
   const [customerSearch, setCustomerSearch] = useState<any>("")
+  const [selectedCustomerIndex, setSelectedCustomerIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string, details?: any } | null>(null);
   
@@ -141,17 +142,17 @@ const Dashboard: React.FC = () => {
 
   const getAllDrafts = async () => {
     try {
-      console.log('Fetching drafts...');
+      // console.log('Fetching drafts...');
       const response = await invoiceDraftService.getAllInvoiceDrafts();
-      console.log('Drafts response:', response);
-      console.log('Drafts data structure:', response.data);
+      // console.log('Drafts response:', response);
+      // console.log('Drafts data structure:', response.data);
       if (response.data && response.data.length > 0) {
-        console.log('First draft structure:', response.data[0]);
-        console.log('First draft total type:', typeof response.data[0].total);
-        console.log('First draft total value:', response.data[0].total);
+        // console.log('First draft structure:', response.data[0]);
+        // console.log('First draft total type:', typeof response.data[0].total);
+        // console.log('First draft total value:', response.data[0].total);
       }
       setInvoiceDrafts(response.data || []);
-      console.log('Drafts set to:', response.data || []);
+      // console.log('Drafts set to:', response.data || []);
     } catch (error) {
       console.error("Error fetching drafts:", error);
     }
@@ -572,7 +573,7 @@ const Dashboard: React.FC = () => {
     try {
       const response = await invoiceService.getAllCustomers();
       setAllCustomers(response.data);
-      console.log(response.data);
+      // console.log(response.data);
 
     } catch (error) {
       console.error("Error fetching customers:", error);
@@ -580,25 +581,103 @@ const Dashboard: React.FC = () => {
   };
 
   const handleCustomerSearch = (e: any) => {
-    setCustomerSearch(e.target.value);
-    if(e.target.value.length > 0){
+    const searchValue = e.target.value;
+    setCustomerSearch(searchValue);
+    setSelectedCustomerIndex(-1); // Reset selection when typing
+    if(searchValue.length > 0){
       setCustomerToggle(true)
     }else{
       setCustomerToggle(false)
     }
   }
 
+  const handleCustomerKeyDown = (e: React.KeyboardEvent) => {
+    const filteredCustomers = getFilteredCustomers();
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedCustomerIndex(prev => 
+        prev < filteredCustomers.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedCustomerIndex(prev => 
+        prev > 0 ? prev - 1 : filteredCustomers.length - 1
+      );
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedCustomerIndex >= 0 && selectedCustomerIndex < filteredCustomers.length) {
+        handleCustomerSelect(filteredCustomers[selectedCustomerIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      setCustomerToggle(false);
+      setSelectedCustomerIndex(-1);
+    }
+
+
+  };
+
   const handleCustomerSelect = (customer: any) => {
     setCustomerInfo(prev => ({
       ...prev,
       name: customer.name,
-      phone: customer.phone,
+      phone: customer.phoneNumber || customer.phone,
     }));
     setCustomerSearch(customer.name);
     setCustomerToggle(false);
+    setSelectedCustomerIndex(-1);
     showMessage('success', `Customer ${customer.name} selected`);
+    setCustomerSearch('');
   };
-  
+
+  // Enhanced customer filtering function
+  const getFilteredCustomers = () => {
+    if (!customerSearch.trim()) return [];
+    
+    const searchTerm = customerSearch.toLowerCase().trim();
+    
+    return allCustomers?.filter((customer: any) => {
+      const name = customer?.name?.toLowerCase() || '';
+      const phone = (customer?.phoneNumber || customer?.phone || '').toLowerCase();
+      
+      // Search by name (exact match or contains)
+      const nameMatch = name.includes(searchTerm) || name === searchTerm;
+      
+      // Search by phone (exact match or contains)
+      const phoneMatch = phone.includes(searchTerm) || phone === searchTerm;
+      
+      // Search by partial phone number (for easier searching)
+      const phonePartialMatch = phone.replace(/\s+/g, '').includes(searchTerm.replace(/\s+/g, ''));
+      
+      return nameMatch || phoneMatch || phonePartialMatch;
+    }) || [];
+  };
+
+  // Function to determine match type
+  const getMatchType = (customer: any, searchTerm: string) => {
+    const name = customer?.name?.toLowerCase() || '';
+    const phone = (customer?.phoneNumber || customer?.phone || '').toLowerCase();
+    const cleanSearchTerm = searchTerm.toLowerCase().trim();
+    
+    // Check if it's a name match
+    const nameMatch = name.includes(cleanSearchTerm);
+    
+    // Check if it's a phone match
+    const phoneMatch = phone.includes(cleanSearchTerm) || 
+                      phone.replace(/\s+/g, '').includes(cleanSearchTerm.replace(/\s+/g, ''));
+    
+    // If both match, prioritize name match
+    if (nameMatch && phoneMatch) {
+      return 'name';
+    } else if (nameMatch) {
+      return 'name';
+    } else if (phoneMatch) {
+      return 'phone';
+    }
+    
+    return 'phone'; // fallback
+  };
+
   const filterProducts = allProducts.filter((item: any) => {
     return (
       item.product.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
@@ -676,7 +755,7 @@ const Dashboard: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="draft-card-actions">
+                    <div className="draft-card-actions" >
                       <button 
                         className="draft-btn load"
                         onClick={() => handleLoadDraft(draft.id)}
@@ -685,14 +764,14 @@ const Dashboard: React.FC = () => {
                         <RotateCcw size={14} />
                         Load
                       </button>
-                      <button 
+                      {/* <button 
                         className="draft-btn convert"
                         onClick={() => handleConvertDraftToInvoice(draft.id)}
                         disabled={loading}
                       >
                         <Printer size={14} />
                         Convert to Invoice
-                      </button>
+                      </button> */}
                       <button 
                         className="draft-btn delete"
                         onClick={() => handleDeleteDraft(draft.id)}
@@ -859,32 +938,52 @@ const Dashboard: React.FC = () => {
         <div className="customer-info">
           <div className="head">
             <h2>Customer Info</h2>
-            <button className="btn-add-customer">
+            {/* <button className="btn-add-customer">
               <Plus size={15} />
               <p>Add Customer</p>
-            </button>
+            </button> */}
           </div>
           <div className="search-customer">
             <input 
               type="text" 
-              placeholder="Search Customer" 
+              placeholder="Search by customer name or phone number..." 
               value={customerSearch} 
               onChange={handleCustomerSearch}
+              onKeyDown={handleCustomerKeyDown}
               className="customer-search-input"
             />
             <div className={`exist-customers ${customerToggle ? 'active' : ''}`}>
-              {allCustomers?.filter((customer: any) => {
-                return customer?.name?.toLowerCase().includes(customerSearch.toLowerCase()) || customer?.phone?.toLowerCase().includes(customerSearch.toLowerCase())
-              }).map((customer: any) => (
+              {customerToggle && customerSearch.trim().length > 0 && (
+                <div className="search-results-header">
+                  <span className="search-count">
+                    {getFilteredCustomers().length} customer{getFilteredCustomers().length !== 1 ? 's' : ''} found
+                  </span>
+                </div>
+              )}
+              {getFilteredCustomers().map((customer: any, index: number) => (
                 <div 
-                  className="customer-info-item" 
+                  className={`customer-info-item ${index === selectedCustomerIndex ? 'selected' : ''}`}
                   key={customer.id}
                   onClick={() => handleCustomerSelect(customer)}
                 >
-                  <p>{customer.name}</p>
-                  <p>{customer.phone}</p>
+                  <div className="customer-info-details">
+                    <p className="customer-name">{customer.name}</p>
+                    <p className="customer-phone">{customer.phoneNumber}</p>
+                  </div>
+                  <div className="customer-info-type">
+                    {getMatchType(customer, customerSearch) === 'name' ? 
+                      <span className="match-type name-match">Name</span> : 
+                      <span className="match-type phone-match">Phone</span>
+                    }
+                  </div>
                 </div>
               ))}
+              {customerToggle && getFilteredCustomers().length === 0 && customerSearch.trim().length > 0 && (
+                <div className="no-customers-found">
+                  <p>No customers found for "{customerSearch}"</p>
+                  <p className="search-tip">Try searching by name or phone number</p>
+                </div>
+              )}
             </div>
           </div>
           <div className="customer-details">

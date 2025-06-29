@@ -41,19 +41,6 @@ const Invoices: React.FC = () => {
     }
   }, [alert]);
 
-  // getAllInvoices function to fetch all invoices
-  // const getAllInvoices = () => {
-  //   invoiceService.getAllInvoices()
-  //     .then(invoices => {
-  //       dispatch({ type: 'SET_INVOICES', payload: invoices });
-  //       console.log('invoices fetched successfully:', invoices);
-
-  //     })
-  //     .catch(error => {
-  //       setAlert({ type: 'error', message: error.message });
-  //     });
-  // };
-
   const getAllInvoices = async () => {
     try {
       const invoices: any = await invoiceService.getAllInvoices();
@@ -74,7 +61,7 @@ const Invoices: React.FC = () => {
       };
 
       setSelectedInvoice(fullInvoice);
-      console.log("Selected Invoice:", fullInvoice);
+      // console.log("Selected Invoice:", fullInvoice);
       setIsViewModalOpen(true);
     } catch (error) {
       console.error("Invoice Fetch Error:", error);
@@ -86,88 +73,9 @@ const Invoices: React.FC = () => {
     getAllInvoices();
   }, []);
 
-  // Invoice creation form state
-  // const [invoiceForm, setInvoiceForm] = useState({
-  //   customerName: "",
-  //   items: [] as InvoiceItem[],
-  //   paymentMode: "cash" as "cash" | "card" | "upi" | "cheque",
-  //   discount: 0,
-  //   tax: 18,
-  // });
-
-  // const [itemForm, setItemForm] = useState({
-  //   productId: "",
-  //   variantId: "",
-  //   quantity: 1,
-  // });
-
-  // const [itemForm, setItemForm] = useState({
-  //   barcode: "",
-  //   productId: "",
-  //   variantId: "",
-  //   productName: "",
-  //   size: "",
-  //   color: "",
-  //   quantity: 1,
-  //   unitPrice: 0,
-  // });
-
-  // const fetchItemByBarcode = async (barcode: string) => {
-  //   try {
-  //     const res = await fetch(`${API_URL}/invoices/barcode/${barcode}`);
-  //     const data = await res.json();
-  //     console.log(data);
-
-  //     if (data.success) {
-  //       const { product, variant } = data.data;
-
-  //       setItemForm((prev) => ({
-  //         ...prev,
-  //         productId: product.id,
-  //         variantId: variant.id,
-  //         productName: product.name,
-  //         size: variant.size,
-  //         color: variant.color,
-  //         unitPrice: variant.price,
-  //         quantity: 1,
-  //       }));
-  //     } else {
-  //       setAlert({ type: "error", message: data.message });
-  //     }
-  //   } catch (error) {
-  //     console.error("Barcode fetch error:", error);
-  //     setAlert({ type: "error", message: "Failed to fetch item by barcode" });
-  //   }
-  // };
-
-  // const handleBarcodeSearch = async () => {
-  //   if (!itemForm.barcode.trim()) return;
-
-  //   try {
-  //     const data = await invoiceService.getItemByBarcode(
-  //       itemForm.barcode.trim()
-  //     );
-  //     console.log("Fetched Item Data:", data);
-  //     setItemForm((prev) => ({
-  //       ...prev,
-  //       productId: data.productId,
-  //       variantId: data.variantId,
-  //       productName: data.productName,
-  //       size: data.size,
-  //       color: data.color,
-  //       unitPrice: data.unitPrice,
-  //     }));
-  //   } catch (error: any) {
-  //     setAlert({
-  //       type: "error",
-  //       message: error.message || "Barcode not found",
-  //     });
-  //   }
-  // };
-
   const filteredInvoices = getInvoices.filter((invoice) => {
     const matchesSearch =
-      invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.paymentMode.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -185,151 +93,6 @@ const Invoices: React.FC = () => {
 
     return matchesSearch && matchesDate;
   });
-
-  // const handleAddItem = () => {
-  //   if (!itemForm.productId || !itemForm.variantId) {
-  //     setAlert({
-  //       type: "error",
-  //       message: "Please select a product and variant",
-  //     });
-  //     return;
-  //   }
-
-  //   const product = state.products.find((p) => p.id === itemForm.productId);
-  //   const variant = product?.variants.find((v) => v.id === itemForm.variantId);
-
-  //   if (!product || !variant) {
-  //     setAlert({
-  //       type: "error",
-  //       message: "Invalid product or variant selected",
-  //     });
-  //     return;
-  //   }
-
-  //   if (variant.stock_qty < itemForm.quantity) {
-  //     setAlert({ type: "error", message: "Insufficient stock available" });
-  //     return;
-  //   }
-
-  //   const newItem: InvoiceItem = {
-  //     id: Date.now().toString(),
-  //     productId: product.id,
-  //     variant: variant.id,
-  //     productName: product.name,
-  //     size: variant.size,
-  //     color: variant.color,
-  //     quantity: itemForm.quantity,
-  //     unitPrice: variant.price,
-  //     total: variant.price * itemForm.quantity,
-  //   };
-
-  //   setInvoiceForm((prev) => ({
-  //     ...prev,
-  //     items: [...prev.items, newItem],
-  //   }));
-
-  //   setItemForm({
-  //     barcode: "",
-  //     productId: "",
-  //     variantId: "",
-  //     productName: "",
-  //     size: "",
-  //     color: "",
-  //     quantity: 1,
-  //     unitPrice: 0,
-  //   });
-  // };
-
-  // const handleRemoveItem = (itemId: string) => {
-  //   setInvoiceForm((prev) => ({
-  //     ...prev,
-  //     items: prev.items.filter((item) => item.id !== itemId),
-  //   }));
-  // };
-
-  // const calculateTotals = () => {
-  //   const subtotal = invoiceForm.items.reduce(
-  //     (sum, item) => sum + item.total,
-  //     0
-  //   );
-  //   const discountAmount = (subtotal * invoiceForm.discount) / 100;
-  //   const taxableAmount = subtotal - discountAmount;
-  //   const taxAmount = (taxableAmount * invoiceForm.tax) / 100;
-  //   const total = taxableAmount + taxAmount;
-
-  //   return { subtotal, discountAmount, taxAmount, total };
-  // };
-
-  // const handleCreateInvoice = (e: React.FormEvent) => {
-  //   e.preventDefault();
-
-  //   if (invoiceForm.items.length === 0) {
-  //     setAlert({
-  //       type: "error",
-  //       message: "Please add at least one item to the invoice",
-  //     });
-  //     return;
-  //   }
-
-  //   const { subtotal, discountAmount, taxAmount, total } = calculateTotals();
-
-  //   const newInvoice: Invoice = {
-  //     id: Date.now().toString(),
-  //     invoiceNumber: `INV-${new Date().getFullYear()}-${String(
-  //       state.invoices.length + 1
-  //     ).padStart(3, "0")}`,
-  //     customerName: invoiceForm.customerName || undefined,
-  //     invoiceItems: invoiceForm.items,
-  //     subtotal,
-  //     tax: taxAmount,
-  //     discount: discountAmount,
-  //     total,
-  //     paymentMode: invoiceForm.paymentMode,
-  //     createdAt: new Date(),
-  //     status: "paid",
-  //   };
-
-  //   // Update stock for each item
-  //   invoiceForm.items.forEach((item) => {
-  //     const product = state.products.find((p) => p.id === item.productId);
-  //     if (product) {
-  //       const updatedProduct = {
-  //         ...product,
-  //         variants: product.variants.map((v) =>
-  //           v.id === item.variant
-  //             ? { ...v, stock: v.stock_qty - item.quantity }
-  //             : v
-  //         ),
-  //       };
-  //       dispatch({ type: "UPDATE_PRODUCT", payload: updatedProduct });
-  //     }
-  //   });
-
-  //   dispatch({ type: "ADD_INVOICE", payload: newInvoice });
-  //   setAlert({ type: "success", message: "Invoice created successfully" });
-  //   setIsCreateModalOpen(false);
-  //   resetInvoiceForm();
-  // };
-
-  // const resetInvoiceForm = () => {
-  //   setInvoiceForm({
-  //     customerName: "",
-  //     items: [],
-  //     paymentMode: "cash",
-  //     discount: 0,
-  //     tax: 18,
-  //   });
-  //   setItemForm({
-  //     barcode: "",
-  //     productId: "",
-  //     variantId: "",
-  //     productName: "",
-  //     size: "",
-  //     color: "",
-  //     quantity: 1,
-  //     unitPrice: 0,
-  //   });
-  // };
 
   const handlePrintInvoice = (invoice: Invoice) => {
     const printWindow = window.open("", "_blank");
@@ -426,26 +189,6 @@ const Invoices: React.FC = () => {
     printWindow.document.close();
   };
 
-  // const selectedProduct = state.products.find(
-  //   (p) => p.id === itemForm.productId
-  // );
-
-  // const calculateInvoiceTotals = () => {
-  //   const subtotal = invoiceForm.items.reduce(
-  //     (sum, item) => sum + item.total,
-  //     0
-  //   );
-  //   const discountAmount = (subtotal * invoiceForm.discount) / 100;
-  //   const taxableAmount = subtotal - discountAmount;
-  //   const taxAmount = (taxableAmount * invoiceForm.tax) / 100;
-  //   const total = taxableAmount + taxAmount;
-
-  //   return { subtotal, discountAmount, taxAmount, total };
-  // };
-
-  // const { subtotal, discountAmount, taxAmount, total } =
-  //   calculateInvoiceTotals();
-
   return (
     <div className="page">
       <div className="page-header">
@@ -541,7 +284,7 @@ const Invoices: React.FC = () => {
                   </td>
                   <td>
                     <span className="customer-name">
-                      {invoice.customerName || "Walk-in Customer"}
+                      {invoice.customer?.name.charAt(0).toUpperCase() + invoice.customer?.name.slice(1) || "Walk-in Customer"}
                     </span>
                   </td>
                   <td>
@@ -598,239 +341,6 @@ const Invoices: React.FC = () => {
         </div>
       </div>
 
-      {/* Create Invoice Modal */}
-
-      
-
-      {/* <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          resetInvoiceForm();
-        }}
-        title="Create New Invoice"
-        size="xl"
-      >
-        <form onSubmit={handleCreateInvoice} className="invoice-form">
-          
-
-          <div className="form-row">
-            <Input
-              label="Customer Name (Optional)"
-              value={invoiceForm.customerName}
-              onChange={(e) =>
-                setInvoiceForm((prev) => ({
-                  ...prev,
-                  customerName: e.target.value,
-                }))
-              }
-              placeholder="Enter customer name"
-            />
-            <div className="form-group">
-              <label className="form-label">Payment Mode</label>
-              <select
-                className="form-select"
-                value={invoiceForm.paymentMode}
-                onChange={(e) =>
-                  setInvoiceForm((prev) => ({
-                    ...prev,
-                    paymentMode: e.target.value as
-                      | "cash"
-                      | "card"
-                      | "upi"
-                      | "cheque",
-                  }))
-                }
-              >
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="upi">UPI</option>
-                <option value="cheque">Cheque</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="add-item-section">
-            <h4>Add Items</h4>
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Product</label>
-                <select
-                  className="form-select"
-                  value={itemForm.productId}
-                  onChange={(e) =>
-                    setItemForm((prev) => ({
-                      ...prev,
-                      productId: e.target.value,
-                      variantId: "",
-                    }))
-                  }
-                >
-                  <option value="">Select Product</option>
-                  {state.products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Variant</label>
-                <select
-                  className="form-select"
-                  value={itemForm.variantId}
-                  onChange={(e) =>
-                    setItemForm((prev) => ({
-                      ...prev,
-                      variantId: e.target.value,
-                    }))
-                  }
-                  disabled={!selectedProduct}
-                >
-                  <option value="">Select Variant</option>
-                  {selectedProduct?.variants.map((variant) => (
-                    <option key={variant.id} value={variant.id}>
-                      {variant.size} - {variant.color} (₹{variant.price}) -
-                      Stock: {variant.stock_qty}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <Input
-                label="Quantity"
-                type="number"
-                value={itemForm.quantity}
-                onChange={(e) =>
-                  setItemForm((prev) => ({
-                    ...prev,
-                    quantity: parseInt(e.target.value) || 1,
-                  }))
-                }
-                min="1"
-              />
-
-              <div className="form-group">
-                <label className="form-label">&nbsp;</label>
-                <Button type="button" onClick={handleAddItem}>
-                  Add Item
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {invoiceForm.items.length > 0 && (
-            <div className="invoice-items">
-              <h4>Invoice Items</h4>
-              <table className="items-table">
-                <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th>Size</th>
-                    <th>Color</th>
-                    <th>Qty</th>
-                    <th>Unit Price</th>
-                    <th>Total</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoiceForm.items.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.productName}</td>
-                      <td>{item.size}</td>
-                      <td>{item.color}</td>
-                      <td>{item.quantity}</td>
-                      <td>₹{item.unitPrice.toLocaleString()}</td>
-                      <td>₹{item.total.toLocaleString()}</td>
-                      <td>
-                        <Button
-                          type="button"
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleRemoveItem(item.id)}
-                        >
-                          Remove
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <div className="invoice-totals">
-                <div className="form-row">
-                  <Input
-                    label="Discount (%)"
-                    type="number"
-                    value={invoiceForm.discount}
-                    onChange={(e) =>
-                      setInvoiceForm((prev) => ({
-                        ...prev,
-                        discount: parseFloat(e.target.value) || 0,
-                      }))
-                    }
-                    min="0"
-                    max="100"
-                  />
-                  <Input
-                    label="Tax (%)"
-                    type="number"
-                    value={invoiceForm.tax}
-                    onChange={(e) =>
-                      setInvoiceForm((prev) => ({
-                        ...prev,
-                        tax: parseFloat(e.target.value) || 0,
-                      }))
-                    }
-                    min="0"
-                    max="100"
-                  />
-                </div>
-
-                <div className="totals-summary">
-                  <div className="total-line">
-                    <span>Subtotal:</span>
-                    <span>₹{subtotal.toLocaleString()}</span>
-                  </div>
-                  {discountAmount > 0 && (
-                    <div className="total-line">
-                      <span>Discount:</span>
-                      <span>-₹{discountAmount.toLocaleString()}</span>
-                    </div>
-                  )}
-                  <div className="total-line">
-                    <span>Tax:</span>
-                    <span>₹{taxAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="total-line total-final">
-                    <span>Total:</span>
-                    <span>₹{total.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="form-actions">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setIsCreateModalOpen(false);
-                resetInvoiceForm();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={invoiceForm.items.length === 0}>
-              Create Invoice
-            </Button>
-          </div> 
-        </form>
-      </Modal> */}
-
       {/* View Invoice Modal */}
       <Modal
         isOpen={isViewModalOpen}
@@ -851,7 +361,7 @@ const Invoices: React.FC = () => {
                 </p>
                 <p>
                   <strong>Customer:</strong>{" "}
-                  {selectedInvoice.customerName || "Walk-in Customer"}
+                  {selectedInvoice.customer?.name.charAt(0).toUpperCase() + selectedInvoice.customer?.name.slice(1) || "Walk-in Customer"}
                 </p>
                 <p>
                   <strong>Payment Mode:</strong>{" "}
@@ -877,17 +387,7 @@ const Invoices: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* {selectedInvoice.items.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.productName}</td>
-                      <td>{item.size}</td>
-                      <td>{item.color}</td>
-                      <td>{item.quantity}</td>
-                      <td>₹{item.unitPrice.toLocaleString()}</td>
-                      <td>₹{item.total.toLocaleString()}</td>
-                    </tr>
-                  ))} */}
-
+              
                   {selectedInvoice?.invoiceItems?.length > 0 ? (
                     selectedInvoice.invoiceItems.map((item) => (
                       <tr key={item.id}>

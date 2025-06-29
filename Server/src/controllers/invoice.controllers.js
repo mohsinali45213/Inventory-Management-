@@ -58,7 +58,7 @@ export const createInvoiceWithItems = async (req, res) => {
   const transaction = await Sequelize.transaction();
   
   try {
-    console.log("Received invoice data:", req.body);
+    // console.log("Received invoice data:", req.body);
     
     const {
       customerName,
@@ -75,37 +75,37 @@ export const createInvoiceWithItems = async (req, res) => {
     // 🔍 Customer handling
     let customerId = null;
     if (customerName && customerPhone) {
-      console.log("Customer creation check:", {
-        hasCustomerName: !!customerName,
-        hasCustomerPhone: !!customerPhone,
-        customerNameLength: customerName.length,
-        customerPhoneLength: customerPhone.length,
-        customerNameValue: customerName,
-        customerPhoneValue: customerPhone
-      });
+      // console.log("Customer creation check:", {
+      //   hasCustomerName: !!customerName,
+      //   hasCustomerPhone: !!customerPhone,
+      //   customerNameLength: customerName.length,
+      //   customerPhoneLength: customerPhone.length,
+      //   customerNameValue: customerName,
+      //   customerPhoneValue: customerPhone
+      // });
 
       // Check if customer already exists
-      console.log("Looking for existing customer with phone:", customerPhone);
+      // console.log("Looking for existing customer with phone:", customerPhone);
       let customer = await Customer.findOne({
         where: { phoneNumber: customerPhone }
       });
 
       if (!customer) {
-        console.log("Customer not found, creating new customer:", { name: customerName, phone: customerPhone });
+        // console.log("Customer not found, creating new customer:", { name: customerName, phone: customerPhone });
         customer = await Customer.create({
           name: customerName,
           phoneNumber: customerPhone,
         }, { transaction });
-        console.log("New customer created:", customer.toJSON());
+        // console.log("New customer created:", customer.toJSON());
       }
 
       customerId = customer.id;
-      console.log("Customer resolved for invoice:", {
-        customerId,
-        customerName,
-        customerPhone,
-        customerIdType: typeof customerId
-      });
+      // console.log("Customer resolved for invoice:", {
+      //   customerId,
+      //   customerName,
+      //   customerPhone,
+      //   customerIdType: typeof customerId
+      // });
     }
 
     // 🔢 Generate invoice number with retry mechanism
@@ -117,7 +117,7 @@ export const createInvoiceWithItems = async (req, res) => {
     while (retryCount < maxRetries) {
       try {
         invoiceNumber = await generateInvoiceNumber();
-        console.log(`Generated invoice number (attempt ${retryCount + 1}):`, invoiceNumber);
+        // console.log(`Generated invoice number (attempt ${retryCount + 1}):`, invoiceNumber);
         
         // Try to create the invoice
         invoice = await Invoice.create(
@@ -134,12 +134,12 @@ export const createInvoiceWithItems = async (req, res) => {
           { transaction }
         );
         
-        console.log("Invoice created successfully:", invoice.toJSON());
+        // console.log("Invoice created successfully:", invoice.toJSON());
         break; // Success, exit retry loop
         
       } catch (error) {
         if (error.name === 'SequelizeUniqueConstraintError' && error.fields?.invoiceNumber) {
-          console.log(`Invoice number conflict detected (attempt ${retryCount + 1}):`, invoiceNumber);
+          // console.log(`Invoice number conflict detected (attempt ${retryCount + 1}):`, invoiceNumber);
           retryCount++;
           if (retryCount >= maxRetries) {
             throw new Error(`Failed to generate unique invoice number after ${maxRetries} attempts`);
@@ -159,7 +159,7 @@ export const createInvoiceWithItems = async (req, res) => {
 
     // 📦 Create invoice items
     if (items && items.length > 0) {
-      console.log("Creating invoice items:", items);
+      // console.log("Creating invoice items:", items);
       
       for (const item of items) {
         const { variantId, quantity, total } = item;
@@ -200,7 +200,7 @@ export const createInvoiceWithItems = async (req, res) => {
           { transaction }
         );
         
-        console.log(`Stock reduced for variant ${variantId}: ${currentStock} -> ${newStock}`);
+        // console.log(`Stock reduced for variant ${variantId}: ${currentStock} -> ${newStock}`);
       }
     }
 
@@ -283,6 +283,11 @@ export const getAllInvoicesWithItems = async (req, res) => {
             },
           ],
         },
+        {
+          model: Customer,
+          as: "customer", // ✅ include customer details
+          attributes: ['id', 'name', 'phoneNumber'],
+        },
       ],
     });
 
@@ -347,6 +352,11 @@ export const getInvoiceById = async (req, res) => {
               as: "variant", // ✅ alias as defined in your Sequelize associations
             },
           ],
+        },
+        {
+          model: Customer,
+          as: "customer", // ✅ include customer details
+          attributes: ['id', 'name', 'phoneNumber'],
         },
       ],
     });
@@ -481,14 +491,6 @@ export const convertDraftToInvoice = async (req, res) => {
         message: "Invoice draft not found.",
       });
     }
-
-    console.log('Converting draft to invoice:', {
-      draftId: draft.id,
-      customerId: draft.customerId,
-      customer: draft.customer,
-      items: draft.items?.length || 0
-    });
-
     // Generate invoice number
     const invoiceNumber = await generateInvoiceNumber();
 
@@ -504,7 +506,7 @@ export const convertDraftToInvoice = async (req, res) => {
       status: "paid",
     }, { transaction });
 
-    console.log('Created invoice with customerId:', newInvoice.customerId);
+    // console.log('Created invoice with customerId:', newInvoice.customerId);
 
     // Create invoice items and reduce stock
     for (const draftItem of draft.items) {

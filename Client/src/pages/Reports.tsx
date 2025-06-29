@@ -1,9 +1,23 @@
-import React, { useState } from 'react';
-import { Calendar, Download, TrendingUp, DollarSign, Package, Users, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Download, TrendingUp, DollarSign, Package, Users, CreditCard, AlertCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { useInventory } from '../context/InventoryContext';
 import Button from '../components/common/Button';
-import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, parseISO, isWithinInterval } from 'date-fns';
+import invoiceService from '../functions/invoice';
+import ProductService from '../functions/product';
+import CategoryService from '../functions/category';
+import BrandService from '../functions/brand';
+
+interface ReportData {
+  invoices: any[];
+  products: any[];
+  categories: any[];
+  brands: any[];
+  customers: any[];
+  loading: boolean;
+  error: string | null;
+}
 
 const Reports: React.FC = () => {
   const { state } = useInventory();
@@ -12,8 +26,78 @@ const Reports: React.FC = () => {
     endDate: format(new Date(), 'yyyy-MM-dd')
   });
   const [reportType, setReportType] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [reportData, setReportData] = useState<ReportData>({
+    invoices: [],
+    products: [],
+    categories: [],
+    brands: [],
+    customers: [],
+    loading: true,
+    error: null
+  });
 
-  // Generate mock sales data for the selected date range
+  // Fetch all data from APIs
+  const fetchReportData = async () => {
+    setReportData(prev => ({ ...prev, loading: true, error: null }));
+    
+    try {
+      const [
+        invoicesResponse,
+        productsResponse,
+        categoriesResponse,
+        brandsResponse,
+        customersResponse
+      ] = await Promise.all([
+        invoiceService.getAllInvoices(),
+        ProductService.getAllProducts(),
+        CategoryService.getAllCategories(),
+        BrandService.getAllBrand(),
+        invoiceService.getAllCustomers()
+      ]);
+
+      // Handle different response structures
+      const extractData = (response: any) => {
+        if (response && response.data) {
+          return response.data;
+        }
+        if (Array.isArray(response)) {
+          return response;
+        }
+        return response;
+      };
+
+      setReportData({
+        invoices: extractData(invoicesResponse),
+        products: extractData(productsResponse),
+        categories: extractData(categoriesResponse),
+        brands: extractData(brandsResponse),
+        customers: extractData(customersResponse),
+        loading: false,
+        error: null
+      });
+    } catch (error: any) {
+      console.error('Error fetching report data:', error);
+      setReportData(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message || 'Failed to fetch report data'
+      }));
+    }
+  };
+
+  useEffect(() => {
+    fetchReportData();
+  }, []);
+
+  // Filter invoices by date range
+  const filteredInvoices = reportData.invoices.filter(invoice => {
+    const invoiceDate = parseISO(invoice.createdAt);
+    const start = parseISO(dateRange.startDate);
+    const end = parseISO(dateRange.endDate);
+    return isWithinInterval(invoiceDate, { start, end });
+  });
+
+  // Generate sales data for the selected date range
   const generateSalesData = () => {
     const data = [];
     const start = new Date(dateRange.startDate);
@@ -24,12 +108,24 @@ const Reports: React.FC = () => {
     for (let i = 0; i <= diffDays; i++) {
       const date = new Date(start);
       date.setDate(start.getDate() + i);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      
+      // Find invoices for this date
+      const dayInvoices = filteredInvoices.filter(invoice => 
+        format(parseISO(invoice.createdAt), 'yyyy-MM-dd') === dateStr
+      );
+      
+      const daySales = dayInvoices.reduce((sum, invoice) => sum + (invoice.total || 0), 0);
+      const dayOrders = dayInvoices.length;
+      const dayCustomers = new Set(dayInvoices.map(invoice => 
+        invoice.customer?.name || invoice.customerName || 'Unknown Customer'
+      )).size;
       
       data.push({
-        date: format(date, 'yyyy-MM-dd'),
-        sales: Math.floor(Math.random() * 50000) + 10000,
-        orders: Math.floor(Math.random() * 50) + 10,
-        customers: Math.floor(Math.random() * 30) + 5
+        date: dateStr,
+        sales: daySales,
+        orders: dayOrders,
+        customers: dayCustomers
       });
     }
     return data;
@@ -38,40 +134,146 @@ const Reports: React.FC = () => {
   const salesData = generateSalesData();
 
   // Calculate summary metrics
-  const totalSales = salesData.reduce((sum, day) => sum + day.sales, 0);
-  const totalOrders = salesData.reduce((sum, day) => sum + day.orders, 0);
-  const totalCustomers = salesData.reduce((sum, day) => sum + day.customers, 0);
+  const totalSales = filteredInvoices.reduce((sum, invoice) => sum + (invoice.total || 0), 0);
+  const totalOrders = filteredInvoices.length;
+  const totalCustomers = new Set(filteredInvoices.map(invoice => 
+    invoice.customer?.name || invoice.customerName || 'Unknown Customer'
+  )).size;
   const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
 
-  // Product-wise revenue data
-  const productRevenueData = state.products.slice(0, 10).map(product => {
-    const revenue = Math.floor(Math.random() * 100000) + 10000;
-    const unitsSold = Math.floor(Math.random() * 100) + 10;
-    return {
-      name: product.name.length > 15 ? product.name.substring(0, 15) + '...' : product.name,
-      revenue,
-      unitsSold
-    };
-  }).sort((a, b) => b.revenue - a.revenue);
+  // Customer analytics
+  const customerAnalytics = () => {
+    const customerStats: { [key: string]: { name: string; phone: string; orders: number; totalSpent: number } } = {};
+    
+    filteredInvoices.forEach(invoice => {
+      const customerName = invoice.customer?.name || invoice.customerName || 'Unknown Customer';
+      const customerPhone = invoice.customer?.phoneNumber || 'N/A';
+      const orderTotal = invoice.total || 0;
+      
+      if (customerStats[customerName]) {
+        customerStats[customerName].orders += 1;
+        customerStats[customerName].totalSpent += orderTotal;
+      } else {
+        customerStats[customerName] = {
+          name: customerName,
+          phone: customerPhone,
+          orders: 1,
+          totalSpent: orderTotal
+        };
+      }
+    });
+    
+    return Object.values(customerStats)
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 10);
+  };
+
+  // Product-wise revenue data (from invoice items)
+  const productRevenueData = () => {
+    const productSales: { [key: string]: { revenue: number; unitsSold: number; name: string } } = {};
+    
+    filteredInvoices.forEach(invoice => {
+      if (invoice.invoiceItems) {
+        invoice.invoiceItems.forEach((item: any) => {
+          const productName = item.variant?.product?.name || item.productName || 'Unknown Product';
+          const revenue = item.total || 0;
+          const units = item.quantity || 0;
+          
+          if (productSales[productName]) {
+            productSales[productName].revenue += revenue;
+            productSales[productName].unitsSold += units;
+          } else {
+            productSales[productName] = {
+              name: productName.length > 15 ? productName.substring(0, 15) + '...' : productName,
+              revenue,
+              unitsSold: units
+            };
+          }
+        });
+      }
+    });
+    
+    return Object.values(productSales)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+  };
 
   // Payment mode distribution
-  const paymentModeData = [
-    { name: 'Cash', value: 35, color: '#2563eb' },
-    { name: 'Card', value: 30, color: '#16a34a' },
-    { name: 'UPI', value: 25, color: '#ea580c' },
-    { name: 'Cheque', value: 10, color: '#dc2626' }
-  ];
+  const paymentModeData = () => {
+    const paymentModes: { [key: string]: number } = {};
+    let totalInvoices = 0;
+    
+    filteredInvoices.forEach(invoice => {
+      const mode = invoice.paymentMode || 'Unknown';
+      paymentModes[mode] = (paymentModes[mode] || 0) + 1;
+      totalInvoices++;
+    });
+    
+    const colors = ['#2563eb', '#16a34a', '#ea580c', '#dc2626', '#7c3aed', '#0891b2'];
+    let colorIndex = 0;
+    
+    return Object.entries(paymentModes).map(([mode, count]) => ({
+      name: mode.charAt(0).toUpperCase() + mode.slice(1),
+      value: Math.round((count / totalInvoices) * 100),
+      color: colors[colorIndex++ % colors.length]
+    }));
+  };
 
   // Category-wise sales
-  const categorySalesData = state.categories.map(category => {
-    const categoryProducts = state.products.filter(p => p.categoryId === category.id);
-    const sales = Math.floor(Math.random() * 80000) + 20000;
-    return {
-      name: category.name,
-      sales,
-      products: categoryProducts.length
-    };
-  });
+  const categorySalesData = () => {
+    const categorySales: { [key: string]: { sales: number; products: number; name: string } } = {};
+    
+    // Initialize with all categories
+    reportData.categories.forEach(category => {
+      categorySales[category.name] = {
+        name: category.name,
+        sales: 0,
+        products: reportData.products.filter(p => p.categoryId === category.id).length
+      };
+    });
+    
+    // Calculate sales from invoices
+    filteredInvoices.forEach(invoice => {
+      if (invoice.invoiceItems) {
+        invoice.invoiceItems.forEach((item: any) => {
+          const categoryName = item.variant?.product?.category?.name;
+          if (categoryName && categorySales[categoryName]) {
+            categorySales[categoryName].sales += item.total || 0;
+          }
+        });
+      }
+    });
+    
+    return Object.values(categorySales).filter(cat => cat.sales > 0);
+  };
+
+  // Brand performance
+  const brandPerformanceData = () => {
+    const brandSales: { [key: string]: { sales: number; products: number; name: string } } = {};
+    
+    // Initialize with all brands
+    reportData.brands.forEach(brand => {
+      brandSales[brand.name] = {
+        name: brand.name,
+        sales: 0,
+        products: reportData.products.filter(p => p.brandId === brand.id).length
+      };
+    });
+    
+    // Calculate sales from invoices
+    filteredInvoices.forEach(invoice => {
+      if (invoice.invoiceItems) {
+        invoice.invoiceItems.forEach((item: any) => {
+          const brandName = item.variant?.product?.brand?.name;
+          if (brandName && brandSales[brandName]) {
+            brandSales[brandName].sales += item.total || 0;
+          }
+        });
+      }
+    });
+    
+    return Object.values(brandSales).filter(brand => brand.sales > 0);
+  };
 
   const handleExportReport = () => {
     const reportData = {
@@ -83,9 +285,12 @@ const Reports: React.FC = () => {
         avgOrderValue
       },
       salesData,
-      productRevenueData,
-      paymentModeData,
-      categorySalesData
+      productRevenueData: productRevenueData(),
+      paymentModeData: paymentModeData(),
+      categorySalesData: categorySalesData(),
+      brandPerformanceData: brandPerformanceData(),
+      customerAnalytics: customerAnalytics(),
+      generatedAt: new Date().toISOString()
     };
 
     const dataStr = JSON.stringify(reportData, null, 2);
@@ -99,6 +304,54 @@ const Reports: React.FC = () => {
     linkElement.click();
   };
 
+  if (reportData.loading) {
+    return (
+      <div className="page">
+        <div className="page-header">
+          <div className="page-title">
+            <TrendingUp className="page-icon" />
+            <div>
+              <h1>Reports</h1>
+              <p>Loading report data...</p>
+            </div>
+          </div>
+        </div>
+        <div className="page-content">
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>Fetching data from all APIs...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (reportData.error) {
+    return (
+      <div className="page">
+        <div className="page-header">
+          <div className="page-title">
+            <TrendingUp className="page-icon" />
+            <div>
+              <h1>Reports</h1>
+              <p>Error loading reports</p>
+            </div>
+          </div>
+        </div>
+        <div className="page-content">
+          <div className="error-state">
+            <AlertCircle size={48} className="error-icon" />
+            <h3>Failed to load report data</h3>
+            <p>{reportData.error}</p>
+            <Button onClick={fetchReportData}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <div className="page-header">
@@ -106,7 +359,7 @@ const Reports: React.FC = () => {
           <TrendingUp className="page-icon" />
           <div>
             <h1>Reports</h1>
-            <p>Sales analytics and business insights</p>
+            <p>Real-time analytics using all APIs</p>
           </div>
         </div>
         <Button onClick={handleExportReport}>
@@ -171,7 +424,9 @@ const Reports: React.FC = () => {
             <div className="summary-content">
               <div className="summary-value">₹{totalSales.toLocaleString()}</div>
               <div className="summary-label">Total Sales</div>
-              <div className="summary-change positive">+12.5% from last period</div>
+              <div className="summary-change positive">
+                {filteredInvoices.length > 0 ? `${filteredInvoices.length} orders` : 'No orders'}
+              </div>
             </div>
           </div>
           
@@ -182,7 +437,9 @@ const Reports: React.FC = () => {
             <div className="summary-content">
               <div className="summary-value">{totalOrders}</div>
               <div className="summary-label">Total Orders</div>
-              <div className="summary-change positive">+8.3% from last period</div>
+              <div className="summary-change positive">
+                {reportData.products.length} products available
+              </div>
             </div>
           </div>
           
@@ -192,8 +449,10 @@ const Reports: React.FC = () => {
             </div>
             <div className="summary-content">
               <div className="summary-value">{totalCustomers}</div>
-              <div className="summary-label">Customers</div>
-              <div className="summary-change positive">+15.2% from last period</div>
+              <div className="summary-label">Unique Customers</div>
+              <div className="summary-change positive">
+                {reportData.customers.length} total customers in database
+              </div>
             </div>
           </div>
           
@@ -204,7 +463,12 @@ const Reports: React.FC = () => {
             <div className="summary-content">
               <div className="summary-value">₹{Math.round(avgOrderValue).toLocaleString()}</div>
               <div className="summary-label">Avg Order Value</div>
-              <div className="summary-change positive">+5.7% from last period</div>
+              <div className="summary-change positive">
+                {totalCustomers > 0 ? 
+                  `₹${Math.round(totalSales / totalCustomers).toLocaleString()} avg per customer` :
+                  `${reportData.categories.length} categories`
+                }
+              </div>
             </div>
           </div>
         </div>
@@ -269,7 +533,7 @@ const Reports: React.FC = () => {
               </div>
               <div className="chart-container">
                 <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={productRevenueData} layout="horizontal">
+                  <BarChart data={productRevenueData()} layout="horizontal">
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" width={120} />
@@ -292,7 +556,7 @@ const Reports: React.FC = () => {
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
                     <Pie
-                      data={paymentModeData}
+                      data={paymentModeData()}
                       cx="50%"
                       cy="50%"
                       innerRadius={40}
@@ -300,7 +564,7 @@ const Reports: React.FC = () => {
                       paddingAngle={5}
                       dataKey="value"
                     >
-                      {paymentModeData.map((entry, index) => (
+                      {paymentModeData().map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -308,7 +572,7 @@ const Reports: React.FC = () => {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="pie-legend">
-                  {paymentModeData.map((entry, index) => (
+                  {paymentModeData().map((entry, index) => (
                     <div key={index} className="legend-item">
                       <div 
                         className="legend-color" 
@@ -326,7 +590,7 @@ const Reports: React.FC = () => {
                 <h3>Category Performance</h3>
               </div>
               <div className="category-performance">
-                {categorySalesData.map((category, index) => (
+                {categorySalesData().map((category, index) => (
                   <div key={index} className="category-item">
                     <div className="category-info">
                       <div className="category-name">{category.name}</div>
@@ -334,6 +598,45 @@ const Reports: React.FC = () => {
                     </div>
                     <div className="category-sales">
                       ₹{category.sales.toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="chart-card">
+              <div className="chart-header">
+                <h3>Brand Performance</h3>
+              </div>
+              <div className="brand-performance">
+                {brandPerformanceData().map((brand, index) => (
+                  <div key={index} className="brand-item">
+                    <div className="brand-info">
+                      <div className="brand-name">{brand.name}</div>
+                      <div className="brand-products">{brand.products} products</div>
+                    </div>
+                    <div className="brand-sales">
+                      ₹{brand.sales.toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="chart-card">
+              <div className="chart-header">
+                <h3>Top Customers</h3>
+              </div>
+              <div className="customer-performance">
+                {customerAnalytics().map((customer, index) => (
+                  <div key={index} className="customer-item">
+                    <div className="customer-info">
+                      <div className="customer-name">{customer.name}</div>
+                      <div className="customer-phone">{customer.phone}</div>
+                      <div className="customer-orders">{customer.orders} orders</div>
+                    </div>
+                    <div className="customer-spent">
+                      ₹{customer.totalSpent.toLocaleString()}
                     </div>
                   </div>
                 ))}
@@ -349,7 +652,10 @@ const Reports: React.FC = () => {
                 <div className="insight-content">
                   <div className="insight-title">Best Selling Day</div>
                   <div className="insight-value">
-                    {format(new Date(salesData.reduce((max, day) => day.sales > max.sales ? day : max).date), 'MMM dd')}
+                    {salesData.length > 0 ? 
+                      format(new Date(salesData.reduce((max, day) => day.sales > max.sales ? day : max).date), 'MMM dd') :
+                      'No data'
+                    }
                   </div>
                 </div>
               </div>
@@ -361,7 +667,10 @@ const Reports: React.FC = () => {
                 <div className="insight-content">
                   <div className="insight-title">Top Category</div>
                   <div className="insight-value">
-                    {categorySalesData.reduce((max, cat) => cat.sales > max.sales ? cat : max).name}
+                    {categorySalesData().length > 0 ? 
+                      categorySalesData().reduce((max, cat) => cat.sales > max.sales ? cat : max).name :
+                      'No data'
+                    }
                   </div>
                 </div>
               </div>
@@ -373,7 +682,40 @@ const Reports: React.FC = () => {
                 <div className="insight-content">
                   <div className="insight-title">Preferred Payment</div>
                   <div className="insight-value">
-                    {paymentModeData.reduce((max, mode) => mode.value > max.value ? mode : max).name}
+                    {paymentModeData().length > 0 ? 
+                      paymentModeData().reduce((max, mode) => mode.value > max.value ? mode : max).name :
+                      'No data'
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div className="insight-item">
+                <div className="insight-icon">
+                  <Users size={20} />
+                </div>
+                <div className="insight-content">
+                  <div className="insight-title">Top Brand</div>
+                  <div className="insight-value">
+                    {brandPerformanceData().length > 0 ? 
+                      brandPerformanceData().reduce((max, brand) => brand.sales > max.sales ? brand : max).name :
+                      'No data'
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div className="insight-item">
+                <div className="insight-icon">
+                  <Users size={20} />
+                </div>
+                <div className="insight-content">
+                  <div className="insight-title">Top Customer</div>
+                  <div className="insight-value">
+                    {customerAnalytics().length > 0 ? 
+                      customerAnalytics()[0].name :
+                      'No data'
+                    }
                   </div>
                 </div>
               </div>

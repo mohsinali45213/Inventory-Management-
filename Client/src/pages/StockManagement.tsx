@@ -693,8 +693,8 @@ const getCategoryName = (id: string) => {
 
 
   useEffect(() => {
-  console.log("Categories:", categories);
-  console.log("Brands:", brands);
+  // console.log("Categories:", categories);
+  // console.log("Brands:", brands);
 }, [categories, brands]);
 
 

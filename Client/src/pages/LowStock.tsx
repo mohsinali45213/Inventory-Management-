@@ -328,7 +328,7 @@ const [restockMode, setRestockMode] = useState(false); // true = add to current 
         BrandService.getAllBrand(),
         CategoryService.getAllCategories()
       ]);
-      console.log("Categories response:", categoryRes);
+      // console.log("Categories response:", categoryRes);
       setProducts(productRes);
       setBrands(brandRes.data);
       setCategories(categoryRes.data);

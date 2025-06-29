@@ -100,7 +100,7 @@ const Products: React.FC = () => {
   const fetchCategories = async () => {
     try {
       const categories: any = await CategoryService.getAllCategories();
-      console.log(categories.data);
+      // console.log(categories.data);
 
       setAllCategories(categories.data);
     } catch (error) {
@@ -335,7 +335,7 @@ const Products: React.FC = () => {
   };
 
   const handleEditProduct = (product: Product) => {
-    console.log(product);
+    // console.log(product);
 
     // 1. Set values into input fields
     setProductName(product.name);
