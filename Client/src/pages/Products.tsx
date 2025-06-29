@@ -142,7 +142,7 @@ const Products: React.FC = () => {
 
         const matchesSearch =
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.subcategoryId
+          product.subCategoryId
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
           categories
@@ -270,7 +270,7 @@ const Products: React.FC = () => {
     const payload = {
       id: "",
       name: productName,
-      subcategoryId: selectedSubcategory,
+      subCategoryId: selectedSubcategory,
       brandId: selectedBrand,
       categoryId: selectedCategory,
       variants: variants.map((v) => ({
@@ -335,10 +335,12 @@ const Products: React.FC = () => {
   };
 
   const handleEditProduct = (product: Product) => {
+    console.log(product);
+
     // 1. Set values into input fields
     setProductName(product.name);
     setSelectedCategory(product.categoryId);
-    setSelectedSubcategory(product.subcategoryId);
+    setSelectedSubcategory(product.subCategoryId);
     setSelectedBrand(product.brandId);
 
     // 2. Format and set variant fields
@@ -395,7 +397,7 @@ const Products: React.FC = () => {
   const handleEditVariant = (product: Product, variantId: number) => {
     setProductName(product.name);
     setSelectedCategory(product.categoryId);
-    setSelectedSubcategory(product.subcategoryId);
+    setSelectedSubcategory(product.subCategoryId);
     setSelectedBrand(product.brandId);
     setVariants(product.variants);
     setEditingVariantIndex(variantId); // Set the index of the variant being edited
@@ -529,9 +531,9 @@ const Products: React.FC = () => {
                         </div>
                         <div className="product-info">
                           <div className="product-name">{product.name}</div>
-                          {product.subcategoryId && (
+                          {product.subCategoryId && (
                             <div className="product-subcategory">
-                              {product.subcategoryId}
+                              {product.subCategoryId}
                             </div>
                           )}
                         </div>

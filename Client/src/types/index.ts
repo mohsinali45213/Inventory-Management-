@@ -16,7 +16,7 @@ export interface Product {
   categoryId: string;
   // subcategory: string; // Optional, if not used
   brandId: string;
-  subcategoryId: string;
+  subCategoryId: string;
   createdAt?: Date;
   // status: 'active' | 'inactive'; 
   variants: ProductVariant[];
