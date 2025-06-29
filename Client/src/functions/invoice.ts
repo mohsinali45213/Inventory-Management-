@@ -34,16 +34,25 @@ const createInvoiceWithItems = async (invoiceData: any): Promise<any> => {
 };
 
 const getAllInvoices = async (): Promise<Invoice[]> => {
-  const response = await fetch(`${API_URL}/invoices`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    throw new Error('Failed to fetch invoices');
+  try {
+    const response = await fetch(`${API_URL}/invoices`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "Failed to fetch invoices.");
+    }
+
+    return result.data; // ✅ Return the actual invoices array
+  } catch (error: any) {
+    console.error("❌ Error fetching invoices:", error);
+    throw new Error(error?.message || "Something went wrong");
   }
-  return response.json();
 };
 
 const getInvoiceById = async (id: string): Promise<Invoice> => {
@@ -104,11 +113,19 @@ export const getItemByBarcode = async (barcode: string) => {
 };
 
 export const getAllCustomers = async () => {
-  const response = await fetch(`${API_URL}/customers`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch customers");
+  try {
+    const response = await fetch(`${API_URL}/customers`);
+    const result = await response.json();
+    
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "Failed to fetch customers");
+    }
+    
+    return result.data; // Return the actual customers array
+  } catch (error: any) {
+    console.error("Error fetching customers:", error);
+    throw new Error(error?.message || "Something went wrong");
   }
-  return response.json();
 };
 
 

@@ -19,11 +19,19 @@ const createBrand = async (name: string, status: string): Promise<Brand> => {
 };
 
 const getAllBrand = async (): Promise<Brand[]> => {
-  const response = await fetch(`${API_URL}/brands`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch brands");
+  try {
+    const response = await fetch(`${API_URL}/brands`);
+    const result = await response.json();
+    
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "Failed to fetch brands");
+    }
+    
+    return result.data; // Return the actual brands array
+  } catch (error: any) {
+    console.error("Error fetching brands:", error);
+    throw new Error(error?.message || "Something went wrong");
   }
-  return response.json();
 };
 
 const getBrandById = async (id: string): Promise<Brand> => {

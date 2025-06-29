@@ -82,7 +82,6 @@ const Dashboard: React.FC = () => {
   const [allCustomers, setAllCustomers] = useState<any>([]);
   const [customerToggle, setCustomerToggle] = useState<any>(false)
   const [customerSearch, setCustomerSearch] = useState<any>("")
-  const [selectedCustomerIndex, setSelectedCustomerIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string, details?: any } | null>(null);
   
@@ -142,17 +141,17 @@ const Dashboard: React.FC = () => {
 
   const getAllDrafts = async () => {
     try {
-      // console.log('Fetching drafts...');
+      console.log('Fetching drafts...');
       const response = await invoiceDraftService.getAllInvoiceDrafts();
-      // console.log('Drafts response:', response);
-      // console.log('Drafts data structure:', response.data);
+      console.log('Drafts response:', response);
+      console.log('Drafts data structure:', response.data);
       if (response.data && response.data.length > 0) {
-        // console.log('First draft structure:', response.data[0]);
-        // console.log('First draft total type:', typeof response.data[0].total);
-        // console.log('First draft total value:', response.data[0].total);
+        console.log('First draft structure:', response.data[0]);
+        console.log('First draft total type:', typeof response.data[0].total);
+        console.log('First draft total value:', response.data[0].total);
       }
       setInvoiceDrafts(response.data || []);
-      // console.log('Drafts set to:', response.data || []);
+      console.log('Drafts set to:', response.data || []);
     } catch (error) {
       console.error("Error fetching drafts:", error);
     }
@@ -265,8 +264,35 @@ const Dashboard: React.FC = () => {
       const response = await invoiceService.createInvoiceWithItems(invoiceData);
       console.log('Invoice created successfully:', response);
       
-      showMessage('success', 'Invoice created and printed successfully!', {
+      // Create invoice object for printing
+      const createdInvoice = {
+        id: response.data?.invoice?.id,
         invoiceNumber: response.data?.invoice?.invoiceNumber || 'INV-' + response.data?.invoice?.id?.slice(0, 8),
+        customerName: customerInfo.name || 'Walk-in Customer',
+        customerPhone: customerInfo.phone || '',
+        createdAt: new Date().toISOString(),
+        subtotal: paymentDetails.subtotal,
+        discount: paymentDetails.discount,
+        tax: paymentDetails.gst,
+        total: paymentDetails.total,
+        paymentMode: paymentDetails.paymentMethod,
+        status: 'paid',
+        invoiceItems: billingItems.map(item => ({
+          id: item.variantId,
+          productName: item.productName,
+          size: item.size,
+          color: item.color,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          total: item.total,
+        })),
+      };
+      
+      // Print the invoice
+      printInvoice(createdInvoice);
+      
+      showMessage('success', 'Invoice created and printed successfully!', {
+        invoiceNumber: createdInvoice.invoiceNumber,
         customerName: customerInfo.name || 'No Customer',
         total: paymentDetails.total,
         itemsCount: billingItems.length,
@@ -279,6 +305,196 @@ const Dashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const printInvoice = (invoice: any) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      showMessage('error', 'Please allow popups to print the invoice');
+      return;
+    }
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice ${invoice.invoiceNumber}</title>
+        <style>
+          @media print {
+            body { margin: 0; padding: 20px; }
+            .no-print { display: none !important; }
+          }
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            line-height: 1.4;
+            color: #333;
+          }
+          .header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+          }
+          .store-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          .invoice-title {
+            font-size: 18px;
+            margin-bottom: 10px;
+          }
+          .invoice-details { 
+            margin-bottom: 20px; 
+            display: flex;
+            justify-content: space-between;
+          }
+          .invoice-info, .customer-info {
+            flex: 1;
+          }
+          .items-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 20px; 
+            font-size: 12px;
+          }
+          .items-table th, .items-table td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left; 
+          }
+          .items-table th { 
+            background-color: #f5f5f5; 
+            font-weight: bold;
+          }
+          .totals { 
+            text-align: right; 
+            margin-top: 20px;
+          }
+          .total-line {
+            margin: 5px 0;
+            font-size: 14px;
+          }
+          .total-row { 
+            font-weight: bold; 
+            font-size: 16px; 
+            border-top: 2px solid #333;
+            padding-top: 10px;
+            margin-top: 10px;
+          }
+          .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+          }
+          .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+          }
+          .print-btn:hover {
+            background: #0056b3;
+          }
+        </style>
+      </head>
+      <body>
+        <button class="print-btn no-print" onclick="window.print()">Print Invoice</button>
+        
+        <div class="header">
+          <div class="store-name">CLOTHING STORE</div>
+          <div class="invoice-title">INVOICE</div>
+        </div>
+        
+        <div class="invoice-details">
+          <div class="invoice-info">
+            <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
+            <p><strong>Date:</strong> ${new Date(invoice.createdAt).toLocaleDateString()}</p>
+            <p><strong>Time:</strong> ${new Date(invoice.createdAt).toLocaleTimeString()}</p>
+            <p><strong>Payment Mode:</strong> ${invoice.paymentMode.toUpperCase()}</p>
+          </div>
+          <div class="customer-info">
+            <p><strong>Customer:</strong> ${invoice.customerName}</p>
+            ${invoice.customerPhone ? `<p><strong>Phone:</strong> ${invoice.customerPhone}</p>` : ''}
+          </div>
+        </div>
+
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Size</th>
+              <th>Color</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${invoice.invoiceItems.map((item: any) => `
+              <tr>
+                <td>${item.productName}</td>
+                <td>${item.size}</td>
+                <td>${item.color}</td>
+                <td>${item.quantity}</td>
+                <td>₹${item.unitPrice.toLocaleString()}</td>
+                <td>₹${item.total.toLocaleString()}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <div class="total-line">
+            <strong>Subtotal:</strong> ₹${invoice.subtotal.toLocaleString()}
+          </div>
+          ${invoice.discount > 0 ? `
+            <div class="total-line">
+              <strong>Discount:</strong> -₹${invoice.discount.toLocaleString()}
+            </div>
+          ` : ''}
+          <div class="total-line">
+            <strong>Tax (GST):</strong> ₹${invoice.tax.toLocaleString()}
+          </div>
+          <div class="total-line total-row">
+            <strong>TOTAL:</strong> ₹${invoice.total.toLocaleString()}
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>Thank you for your purchase!</p>
+          <p>This is a computer generated invoice</p>
+        </div>
+
+        <script>
+          window.onload = function() {
+            // Auto-print after a short delay
+            setTimeout(function() {
+              window.print();
+            }, 500);
+            
+            // Close window after printing
+            window.onafterprint = function() {
+              setTimeout(function() {
+                window.close();
+              }, 1000);
+            };
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
   };
 
   const handleConvertDraftToInvoice = async (draftId: string) => {
@@ -571,113 +787,36 @@ const Dashboard: React.FC = () => {
 
   const getAllCustomers = async () => {
     try {
-      const response = await invoiceService.getAllCustomers();
-      setAllCustomers(response.data);
-      // console.log(response.data);
-
+      const response = await fetch(`${API_URL}/customers`);
+      const result = await response.json();
+      setAllCustomers(result.data || []);
+      console.log(result.data);
     } catch (error) {
       console.error("Error fetching customers:", error);
+      setAllCustomers([]); // Set empty array on error
     }
   };
 
   const handleCustomerSearch = (e: any) => {
-    const searchValue = e.target.value;
-    setCustomerSearch(searchValue);
-    setSelectedCustomerIndex(-1); // Reset selection when typing
-    if(searchValue.length > 0){
+    setCustomerSearch(e.target.value);
+    if(e.target.value.length > 0){
       setCustomerToggle(true)
     }else{
       setCustomerToggle(false)
     }
   }
 
-  const handleCustomerKeyDown = (e: React.KeyboardEvent) => {
-    const filteredCustomers = getFilteredCustomers();
-    
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedCustomerIndex(prev => 
-        prev < filteredCustomers.length - 1 ? prev + 1 : 0
-      );
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedCustomerIndex(prev => 
-        prev > 0 ? prev - 1 : filteredCustomers.length - 1
-      );
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (selectedCustomerIndex >= 0 && selectedCustomerIndex < filteredCustomers.length) {
-        handleCustomerSelect(filteredCustomers[selectedCustomerIndex]);
-      }
-    } else if (e.key === 'Escape') {
-      setCustomerToggle(false);
-      setSelectedCustomerIndex(-1);
-    }
-
-
-  };
-
   const handleCustomerSelect = (customer: any) => {
     setCustomerInfo(prev => ({
       ...prev,
       name: customer.name,
-      phone: customer.phoneNumber || customer.phone,
+      phone: customer.phone,
     }));
     setCustomerSearch(customer.name);
     setCustomerToggle(false);
-    setSelectedCustomerIndex(-1);
     showMessage('success', `Customer ${customer.name} selected`);
-    setCustomerSearch('');
   };
-
-  // Enhanced customer filtering function
-  const getFilteredCustomers = () => {
-    if (!customerSearch.trim()) return [];
-    
-    const searchTerm = customerSearch.toLowerCase().trim();
-    
-    return allCustomers?.filter((customer: any) => {
-      const name = customer?.name?.toLowerCase() || '';
-      const phone = (customer?.phoneNumber || customer?.phone || '').toLowerCase();
-      
-      // Search by name (exact match or contains)
-      const nameMatch = name.includes(searchTerm) || name === searchTerm;
-      
-      // Search by phone (exact match or contains)
-      const phoneMatch = phone.includes(searchTerm) || phone === searchTerm;
-      
-      // Search by partial phone number (for easier searching)
-      const phonePartialMatch = phone.replace(/\s+/g, '').includes(searchTerm.replace(/\s+/g, ''));
-      
-      return nameMatch || phoneMatch || phonePartialMatch;
-    }) || [];
-  };
-
-  // Function to determine match type
-  const getMatchType = (customer: any, searchTerm: string) => {
-    const name = customer?.name?.toLowerCase() || '';
-    const phone = (customer?.phoneNumber || customer?.phone || '').toLowerCase();
-    const cleanSearchTerm = searchTerm.toLowerCase().trim();
-    
-    // Check if it's a name match
-    const nameMatch = name.includes(cleanSearchTerm);
-    
-    // Check if it's a phone match
-    const phoneMatch = phone.includes(cleanSearchTerm) || 
-                      phone.replace(/\s+/g, '').includes(cleanSearchTerm.replace(/\s+/g, ''));
-    
-    // If both match, prioritize name match
-    if (nameMatch && phoneMatch) {
-      return 'name';
-    } else if (nameMatch) {
-      return 'name';
-    } else if (phoneMatch) {
-      return 'phone';
-    }
-    
-    return 'phone'; // fallback
-  };
-
+  
   const filterProducts = allProducts.filter((item: any) => {
     return (
       item.product.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
@@ -755,7 +894,7 @@ const Dashboard: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="draft-card-actions" >
+                    <div className="draft-card-actions">
                       <button 
                         className="draft-btn load"
                         onClick={() => handleLoadDraft(draft.id)}
@@ -764,14 +903,14 @@ const Dashboard: React.FC = () => {
                         <RotateCcw size={14} />
                         Load
                       </button>
-                      {/* <button 
+                      <button 
                         className="draft-btn convert"
                         onClick={() => handleConvertDraftToInvoice(draft.id)}
                         disabled={loading}
                       >
                         <Printer size={14} />
                         Convert to Invoice
-                      </button> */}
+                      </button>
                       <button 
                         className="draft-btn delete"
                         onClick={() => handleDeleteDraft(draft.id)}
@@ -938,52 +1077,32 @@ const Dashboard: React.FC = () => {
         <div className="customer-info">
           <div className="head">
             <h2>Customer Info</h2>
-            {/* <button className="btn-add-customer">
+            <button className="btn-add-customer">
               <Plus size={15} />
               <p>Add Customer</p>
-            </button> */}
+            </button>
           </div>
           <div className="search-customer">
             <input 
               type="text" 
-              placeholder="Search by customer name or phone number..." 
+              placeholder="Search Customer" 
               value={customerSearch} 
               onChange={handleCustomerSearch}
-              onKeyDown={handleCustomerKeyDown}
               className="customer-search-input"
             />
             <div className={`exist-customers ${customerToggle ? 'active' : ''}`}>
-              {customerToggle && customerSearch.trim().length > 0 && (
-                <div className="search-results-header">
-                  <span className="search-count">
-                    {getFilteredCustomers().length} customer{getFilteredCustomers().length !== 1 ? 's' : ''} found
-                  </span>
-                </div>
-              )}
-              {getFilteredCustomers().map((customer: any, index: number) => (
+              {allCustomers?.filter((customer: any) => {
+                return customer?.name?.toLowerCase().includes(customerSearch.toLowerCase()) || customer?.phone?.toLowerCase().includes(customerSearch.toLowerCase())
+              }).map((customer: any) => (
                 <div 
-                  className={`customer-info-item ${index === selectedCustomerIndex ? 'selected' : ''}`}
+                  className="customer-info-item" 
                   key={customer.id}
                   onClick={() => handleCustomerSelect(customer)}
                 >
-                  <div className="customer-info-details">
-                    <p className="customer-name">{customer.name}</p>
-                    <p className="customer-phone">{customer.phoneNumber}</p>
-                  </div>
-                  <div className="customer-info-type">
-                    {getMatchType(customer, customerSearch) === 'name' ? 
-                      <span className="match-type name-match">Name</span> : 
-                      <span className="match-type phone-match">Phone</span>
-                    }
-                  </div>
+                  <p>{customer.name}</p>
+                  <p>{customer.phone}</p>
                 </div>
               ))}
-              {customerToggle && getFilteredCustomers().length === 0 && customerSearch.trim().length > 0 && (
-                <div className="no-customers-found">
-                  <p>No customers found for "{customerSearch}"</p>
-                  <p className="search-tip">Try searching by name or phone number</p>
-                </div>
-              )}
             </div>
           </div>
           <div className="customer-details">

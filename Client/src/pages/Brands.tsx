@@ -29,9 +29,10 @@ const Brands: React.FC = () => {
   const getAllBrands = async () => {
     try {
       const brands: any = await BrandService.getAllBrand();
-      setAllBrand(brands.data);
+      setAllBrand(brands || []);
     } catch (error) {
       setAlert({ type: "error", message: "Failed to fetch brands." });
+      setAllBrand([]); // Set empty array on error
     }
   };
 

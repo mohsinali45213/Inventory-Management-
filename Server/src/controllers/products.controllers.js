@@ -74,6 +74,15 @@ export const updateProductWithVariants = async (req, res) => {
     const { id } = req.params;
     const { name, subcategory, categoryId, brandId, variants = [] } = req.body;
 
+    console.log("🔍 Debug - Backend received:", {
+      id,
+      name,
+      subcategory,
+      categoryId,
+      brandId,
+      variants: variants.map(v => ({ id: v.id, size: v.size, color: v.color, price: v.price, stock_qty: v.stock_qty }))
+    });
+
     // 1️⃣ Update Product Details
     const product = await Product.findByPk(id, { transaction });
 
@@ -115,17 +124,20 @@ export const updateProductWithVariants = async (req, res) => {
 
     // 🟩 Update or Create Variants
     for (const variant of variants) {
+      console.log("🔍 Debug - Processing variant:", variant);
       if (variant.id && existingVariantIds.includes(variant.id)) {
         // Update existing variant
+        const updateData = {
+          size: variant.size,
+          slug: slugify(`${variant.size}-${variant.color}-${Date.now()}`).toLowerCase(),
+          barcode: generateBarcode(),
+          color: variant.color,
+          price: variant.price,
+          stock_qty: variant.stock_qty, // ✅ Changed to expect stock_qty from request body
+        };
+        console.log("🔍 Debug - Updating variant with data:", updateData);
         await ProductVariant.update(
-          {
-            size: variant.size,
-            slug: slugify(`${variant.size}-${variant.color}-${Date.now()}`).toLowerCase(),
-            barcode: generateBarcode(),
-            color: variant.color,
-            price: variant.price,
-            stock: variant.stock,
-          },
+          updateData,
           {
             where: { id: variant.id },
             transaction,
@@ -133,16 +145,18 @@ export const updateProductWithVariants = async (req, res) => {
         );
       } else {
         // Create new variant
+        const createData = {
+          productId: id,
+          size: variant.size,
+          slug: slugify(`${variant.size}-${variant.color}-${Date.now()}`).toLowerCase(),
+          barcode: generateBarcode(),
+          color: variant.color,
+          price: variant.price,
+          stock_qty: variant.stock_qty, // ✅ Changed to expect stock_qty from request body
+        };
+        console.log("🔍 Debug - Creating variant with data:", createData);
         await ProductVariant.create(
-          {
-            productId: id,
-            size: variant.size,
-            slug: slugify(`${variant.size}-${variant.color}-${Date.now()}`).toLowerCase(),
-            barcode: generateBarcode(),
-            color: variant.color,
-            price: variant.price,
-            stock: variant.stock,
-          },
+          createData,
           { transaction }
         );
       }

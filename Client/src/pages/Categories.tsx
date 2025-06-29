@@ -30,9 +30,10 @@ const Categories: React.FC = () => {
   const getAllCategory = async () => {
     try {
       const categories: any = await CategoryService.getAllCategories();
-      setAllCategories(categories.data);
+      setAllCategories(categories || []);
     } catch (error) {
       setAlert({ type: "error", message: "Failed to fetch category." });
+      setAllCategories([]); // Set empty array on error
     }
   };
 

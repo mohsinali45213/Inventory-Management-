@@ -47,18 +47,25 @@ export const createInvoiceDraft = async (draftData: InvoiceDraft): Promise<any> 
 
 // Get All Invoice Drafts
 export const getAllInvoiceDrafts = async (): Promise<any> => {
-  const response = await fetch(`${API_URL}/invoice-drafts`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch invoice drafts');
+  try {
+    const response = await fetch(`${API_URL}/invoice-drafts`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Failed to fetch invoice drafts');
+    }
+    
+    return result; // Return the full response object with data property
+  } catch (error: any) {
+    console.error('Error fetching invoice drafts:', error);
+    throw new Error(error?.message || 'Something went wrong');
   }
-  
-  return response.json();
 };
 
 // Get Invoice Draft by ID

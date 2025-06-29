@@ -99,7 +99,7 @@ const updateProductWithVariants = async (
     // 🔧 Construct request body exactly how your backend expects it
     const payload = {
       name: product.name,
-      subcategory: product.subcategoryId,
+      subcategory: product.subCategoryId,
       categoryId: product.categoryId,
       brandId: product.brandId,
       variants: variants.map((variant) => ({
@@ -107,9 +107,11 @@ const updateProductWithVariants = async (
         size: variant.size,
         color: variant.color,
         price: variant.price,
-        stock: variant.stock_qty,
+        stock_qty: variant.stock_qty, // ✅ Changed to stock_qty to match backend expectation
       })),
     };
+
+    console.log("🔍 Debug - Payload being sent:", JSON.stringify(payload, null, 2));
 
     const response = await fetch(`${API_URL}/products/${productId}`, {
       method: "PUT",
@@ -120,6 +122,7 @@ const updateProductWithVariants = async (
     });
 
     const result = await response.json();
+    console.log("🔍 Debug - Response received:", result);
 
     if (!response.ok) {
       throw new Error(result.message || "Failed to update product.");
@@ -138,7 +141,7 @@ const updateVariant = async (
   variant: ProductVariant
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    // Prepare data matching the backend controller’s expected keys
+    // Prepare data matching the backend controller's expected keys
     const payload = {
       size: variant.size,
       color: variant.color,

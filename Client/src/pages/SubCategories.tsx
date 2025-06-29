@@ -37,18 +37,20 @@ const SubCategories: React.FC = () => {
   const getAllSubCategories = async () => {
     try {
       const subCategories: any = await SubCategoryService.getAllSubCategories();
-      setAllSubCategories(subCategories.data);
+      setAllSubCategories(subCategories || []);
     } catch (error) {
       setAlert({ type: "error", message: "Failed to fetch subcategories." });
+      setAllSubCategories([]); // Set empty array on error
     }
   };
 
   const getAllCategories = async () => {
     try {
       const categories: any = await CategoryService.getAllCategories();
-      setAllCategories(categories.data);
+      setAllCategories(categories.data || []);
     } catch (error) {
       setAlert({ type: "error", message: "Failed to fetch categories." });
+      setAllCategories([]); // Set empty array on error
     }
   };
 
@@ -198,7 +200,7 @@ const SubCategories: React.FC = () => {
                     <td>
                       {" "}
                       <span className="brand-category">
-                        {data.category.name}
+                        {(allCategories || []).find((c: any) => c.id === data.categoryId)?.name || 'Unknown'}
                       </span>
                     </td>
                     <td>

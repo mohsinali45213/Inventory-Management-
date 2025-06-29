@@ -24,11 +24,19 @@ const createSubCategory = async (
 };
 
 const getAllSubCategories = async (): Promise<SubCategory[]> => {
-  const response = await fetch(`${API_URL}/subcategory`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch subcategories");
+  try {
+    const response = await fetch(`${API_URL}/subcategory`);
+    const result = await response.json();
+    
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "Failed to fetch subcategories");
+    }
+    
+    return result.data; // Return the actual subcategories array
+  } catch (error: any) {
+    console.error("Error fetching subcategories:", error);
+    throw new Error(error?.message || "Something went wrong");
   }
-  return response.json();
 };
 
 const getSubCategoryById = async (id: string): Promise<SubCategory> => {

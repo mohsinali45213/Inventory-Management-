@@ -99,30 +99,31 @@ const Products: React.FC = () => {
 
   const fetchCategories = async () => {
     try {
-      const categories: any = await CategoryService.getAllCategories();
-      // console.log(categories.data);
-
-      setAllCategories(categories.data);
+      const categories = await CategoryService.getAllCategories();
+      setAllCategories(categories || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
+      setAllCategories([]);
     }
   };
 
   const getAllBrands = async () => {
     try {
-      const brands: any = await BrandService.getAllBrand();
-      setAllBrand(brands.data);
+      const brands = await BrandService.getAllBrand();
+      setAllBrand(brands || []);
     } catch (error) {
       console.error("Error fetching brands:", error);
+      setAllBrand([]);
     }
   };
 
   const getAllSubCategories = async () => {
     try {
-      const subCategories: any = await SubCategoryService.getAllSubCategories();
-      setSubcategories(subCategories.data);
+      const subCategories = await SubCategoryService.getAllSubCategories();
+      setSubcategories(subCategories || []);
     } catch (error) {
       console.error("Error fetching subcategories:", error);
+      setSubcategories([]);
     }
   };
 
@@ -145,11 +146,11 @@ const Products: React.FC = () => {
           product.subCategoryId
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          categories
+          (categories || [])
             .find((c) => c.id === product.categoryId)
             ?.name.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          allBrand
+          (allBrand || [])
             .find((b) => b.id === product.brandId)
             ?.name.toLowerCase()
             .includes(searchTerm.toLowerCase());
@@ -335,7 +336,7 @@ const Products: React.FC = () => {
   };
 
   const handleEditProduct = (product: Product) => {
-    // console.log(product);
+    console.log(product);
 
     // 1. Set values into input fields
     setProductName(product.name);
@@ -467,9 +468,9 @@ const Products: React.FC = () => {
                   onChange={(e) => setSelectedCategory(e.target.value)}
                 >
                   <option value="">All Categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
+                  {(categories || []).map((category: any) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
                     </option>
                   ))}
                 </select>
@@ -480,7 +481,7 @@ const Products: React.FC = () => {
                   onChange={(e) => setSelectedBrand(e.target.value)}
                 >
                   <option value="">All Brands</option>
-                  {allBrand.map((brand) => (
+                  {(allBrand || []).map((brand) => (
                     <option key={brand.id} value={brand.id}>
                       {brand.name}
                     </option>
@@ -541,14 +542,14 @@ const Products: React.FC = () => {
                     </td>
                     <td>
                       <span className="category-badge">
-                        {categories.find(
+                        {(categories || []).find(
                           (category) => category.id === product.categoryId
                         )?.name || "Unknown"}
                       </span>
                     </td>
                     <td>
                       <span className="category-badge">
-                        {allBrand.find((brand) => brand.id === product.brandId)
+                        {(allBrand || []).find((brand) => brand.id === product.brandId)
                           ?.name || "Unknown"}
                       </span>
                     </td>
@@ -723,7 +724,7 @@ const Products: React.FC = () => {
                   <option value="" disabled>
                     Select Category
                   </option>
-                  {categories.map((category: any) => (
+                  {(categories || []).map((category: any) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
@@ -745,7 +746,7 @@ const Products: React.FC = () => {
                   <option value="" disabled>
                     Select Subcategory
                   </option>
-                  {subcategories.map((subcategory) => (
+                  {(subcategories || []).map((subcategory) => (
                     <option key={subcategory.id} value={subcategory.id}>
                       {subcategory.name}
                     </option>
@@ -765,7 +766,7 @@ const Products: React.FC = () => {
                   <option value="" disabled>
                     Select Brand
                   </option>
-                  {allBrand.map((brand) => (
+                  {(allBrand || []).map((brand) => (
                     <option key={brand.id} value={brand.id}>
                       {brand.name}
                     </option>

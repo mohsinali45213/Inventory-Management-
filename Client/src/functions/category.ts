@@ -22,11 +22,19 @@ const createCategory = async (
 };
 
 const getAllCategories = async (): Promise<Category[]> => {
-  const response = await fetch(`${API_URL}/category`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch category");
+  try {
+    const response = await fetch(`${API_URL}/category`);
+    const result = await response.json();
+    
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "Failed to fetch categories");
+    }
+    
+    return result.data; // Return the actual categories array
+  } catch (error: any) {
+    console.error("Error fetching categories:", error);
+    throw new Error(error?.message || "Something went wrong");
   }
-  return response.json();
 };
 
 const getCategoryById = async (id: string): Promise<Category> => {
