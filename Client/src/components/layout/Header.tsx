@@ -133,9 +133,9 @@ const Header: React.FC = () => {
                   <Plus size={16} />
                   Add Product
                 </button></Link>
-                <button className="dropdown-item">Create Invoice</button>
+                {/* <button className="dropdown-item">Create Invoice</button>
                 <button className="dropdown-item">Add Category</button>
-                <button className="dropdown-item">Add Brand</button>
+                <button className="dropdown-item">Add Brand</button> */}
               </div>
             )}
           </div>

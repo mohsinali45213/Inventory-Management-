@@ -677,228 +677,231 @@ const Products: React.FC = () => {
         </div>
       </div>
 
-      <Modal
-        isOpen={isEditMode || isAddModalOpen || isVariantEditMode}
-        onClose={() => {
-          setIsEditMode(false);
-          setIsAddModalOpen(false);
-          setIsVariantEditMode(false);
-          resetForm(); // Reset form state
-        }}
-        title={
-          isVariantEditMode
-            ? "Edit Variant"
-            : isEditMode
-            ? "Edit Product"
-            : "Add New Product"
-        }
-        size="lg"
-      >
-        <form
-          className="product-form"
-          onSubmit={isVariantEditMode ? handleUpdateVariant : handleAddProduct}
+      {/* Custom Product Modal */}
+      {(isEditMode || isAddModalOpen || isVariantEditMode) && (
+        <Modal
+          isOpen={isEditMode || isAddModalOpen || isVariantEditMode}
+          onClose={() => {
+            setIsEditMode(false);
+            setIsAddModalOpen(false);
+            setIsVariantEditMode(false);
+            resetForm(); // Reset form state
+          }}
+          title={
+            isVariantEditMode
+              ? "Edit Variant"
+              : isEditMode
+              ? "Edit Product"
+              : "Add New Product"
+          }
+          size="lg"
         >
-          <div className="form-row">
-            <Input
-              label="Product Name"
-              placeholder="Enter product name"
-              required
-              disabled={isVariantEditMode}
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-            />
-            <div className="form-subcategory">
-              <label className="form-label">Category *</label>
-              <select
-                className="form-select"
+          <form
+            className="product-form"
+            onSubmit={isVariantEditMode ? handleUpdateVariant : handleAddProduct}
+          >
+            <div className="form-row">
+              <Input
+                label="Product Name"
+                placeholder="Enter product name"
                 required
                 disabled={isVariantEditMode}
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-              >
-                <option value="" disabled>
-                  Select Category
-                </option>
-                {categories.map((category: any) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Sub Category *</label>
-              <select
-                className="form-select"
-                required
-                disabled={isVariantEditMode}
-                value={selectedSubcategory}
-                onChange={(e) => setSelectedSubcategory(e.target.value)}
-              >
-                <option value="" disabled>
-                  Select Subcategory
-                </option>
-                {subcategories.map((subcategory) => (
-                  <option key={subcategory.id} value={subcategory.id}>
-                    {subcategory.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Brand *</label>
-              <select
-                className="form-select"
-                required
-                disabled={isVariantEditMode}
-                value={selectedBrand}
-                onChange={(e) => setSelectedBrand(e.target.value)}
-              >
-                <option value="" disabled>
-                  Select Brand
-                </option>
-                {allBrand.map((brand) => (
-                  <option key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="variants-section">
-            <h4>Product Variants</h4>
-
-            {variantList.map((variant, index) => {
-              const isEditable = isVariantEditMode ? index === 0 : true; // Only first variant editable when in editVariant mode
-
-              return (
-                <div
-                  key={index}
-                  className="variant-form border p-3 rounded-md shadow mb-4"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+              />
+              <div className="form-subcategory">
+                <label className="form-label">Category *</label>
+                <select
+                  className="form-select"
+                  required
+                  disabled={isVariantEditMode}
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
                 >
-                  <div className="form-row">
-                    <Input
-                      label="Size"
-                      value={variant.size}
-                      required
-                      placeholder="Enter size"
-                      onChange={(e) =>
-                        handleVariantChange(
-                          isVariantEditMode ? editingVariantIndex! : index,
-                          "size",
-                          e.target.value
-                        )
-                      }
-                      disabled={!isEditable}
-                    />
-                    <Input
-                      label="Color"
-                      value={variant.color}
-                      required
-                      placeholder="Enter color"
-                      onChange={(e) =>
-                        handleVariantChange(
-                          isVariantEditMode ? editingVariantIndex! : index,
-                          "color",
-                          e.target.value
-                        )
-                      }
-                      disabled={!isEditable}
-                    />
-                    <Input
-                      label="Price"
-                      type="number"
-                      required
-                      placeholder="Enter price"
-                      value={variant.price}
-                      onChange={(e) =>
-                        handleVariantChange(
-                          isVariantEditMode ? editingVariantIndex! : index,
-                          "price",
-                          e.target.value === "" ? "" : Number(e.target.value)
-                        )
-                      }
-                      disabled={!isEditable}
-                    />
-                    <Input
-                      label="Stock"
-                      type="number"
-                      required
-                      placeholder="Enter stock quantity"
-                      value={variant.stock_qty === "" ? "" : variant.stock_qty}
-                      onChange={(e) =>
-                        handleVariantChange(
-                          isVariantEditMode ? editingVariantIndex! : index,
-                          "stock_qty",
-                          e.target.value === "" ? "" : Number(e.target.value)
-                        )
-                      }
-                      disabled={!isEditable}
-                    />
+                  <option value="" disabled>
+                    Select Category
+                  </option>
+                  {categories.map((category: any) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-                    {!isVariantEditMode && variants.length > 1 && (
-                      <div className="text-right mt-2">
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleRemoveVariant(index)}
-                        >
-                          Remove Variant
-                        </Button>
-                      </div>
-                    )}
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Sub Category *</label>
+                <select
+                  className="form-select"
+                  required
+                  disabled={isVariantEditMode}
+                  value={selectedSubcategory}
+                  onChange={(e) => setSelectedSubcategory(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Select Subcategory
+                  </option>
+                  {subcategories.map((subcategory) => (
+                    <option key={subcategory.id} value={subcategory.id}>
+                      {subcategory.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Brand *</label>
+                <select
+                  className="form-select"
+                  required
+                  disabled={isVariantEditMode}
+                  value={selectedBrand}
+                  onChange={(e) => setSelectedBrand(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Select Brand
+                  </option>
+                  {allBrand.map((brand) => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="variants-section">
+              <h4>Product Variants</h4>
+
+              {variantList.map((variant, index) => {
+                const isEditable = isVariantEditMode ? index === 0 : true; // Only first variant editable when in editVariant mode
+
+                return (
+                  <div
+                    key={index}
+                    className="variant-form border p-3 rounded-md shadow mb-4"
+                  >
+                    <div className="form-row">
+                      <Input
+                        label="Size"
+                        value={variant.size}
+                        required
+                        placeholder="Enter size"
+                        onChange={(e) =>
+                          handleVariantChange(
+                            isVariantEditMode ? editingVariantIndex! : index,
+                            "size",
+                            e.target.value
+                          )
+                        }
+                        disabled={!isEditable}
+                      />
+                      <Input
+                        label="Color"
+                        value={variant.color}
+                        required
+                        placeholder="Enter color"
+                        onChange={(e) =>
+                          handleVariantChange(
+                            isVariantEditMode ? editingVariantIndex! : index,
+                            "color",
+                            e.target.value
+                          )
+                        }
+                        disabled={!isEditable}
+                      />
+                      <Input
+                        label="Price"
+                        type="number"
+                        required
+                        placeholder="Enter price"
+                        value={variant.price}
+                        onChange={(e) =>
+                          handleVariantChange(
+                            isVariantEditMode ? editingVariantIndex! : index,
+                            "price",
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
+                        disabled={!isEditable}
+                      />
+                      <Input
+                        label="Stock"
+                        type="number"
+                        required
+                        placeholder="Enter stock quantity"
+                        value={variant.stock_qty === "" ? "" : variant.stock_qty}
+                        onChange={(e) =>
+                          handleVariantChange(
+                            isVariantEditMode ? editingVariantIndex! : index,
+                            "stock_qty",
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
+                        disabled={!isEditable}
+                      />
+
+                      {!isVariantEditMode && variants.length > 1 && (
+                        <div className="text-right mt-2">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleRemoveVariant(index)}
+                          >
+                            Remove Variant
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
 
-            {!isVariantEditMode && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddVariant}
-                >
-                  Add Variant
-                </Button>
-              </>
-            )}
-          </div>
+              {!isVariantEditMode && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddVariant}
+                  >
+                    Add Variant
+                  </Button>
+                </>
+              )}
+            </div>
 
-          <div className="form-actions">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setIsEditMode(false);
-                setIsAddModalOpen(false);
-                setIsVariantEditMode(false);
-                setEditingVariantIndex(null);
-                resetForm(); // Reset form state
-              }}
-            >
-              Cancel
-            </Button>
+            <div className="form-actions">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsEditMode(false);
+                  setIsAddModalOpen(false);
+                  setIsVariantEditMode(false);
+                  setEditingVariantIndex(null);
+                  resetForm(); // Reset form state
+                }}
+              >
+                Cancel
+              </Button>
 
-            <Button type="submit">
-              {/* {isEditMode ? "Update Product" : "Add Product"} */}
+              <Button type="submit">
+                {/* {isEditMode ? "Update Product" : "Add Product"} */}
 
-              {isVariantEditMode
-                ? "Update Variant"
-                : isEditMode
-                ? "Update Product"
-                : "Add Product"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+                {isVariantEditMode
+                  ? "Update Variant"
+                  : isEditMode
+                  ? "Update Product"
+                  : "Add Product"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };
