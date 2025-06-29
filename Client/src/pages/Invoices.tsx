@@ -6,6 +6,9 @@ import {
   Eye,
   Printer,
   FileText,
+  Trash,
+  CheckSquare,
+  Square,
   // Calendar,
 } from "lucide-react";
 // import { useInventory } from "../context/InventoryContext";
@@ -28,10 +31,15 @@ const Invoices: React.FC = () => {
   // const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [alert, setAlert] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // Alert state for timeInterval
   useEffect(() => {
@@ -69,6 +77,75 @@ const Invoices: React.FC = () => {
     }
   };
 
+  const handleDeleteInvoice = async (invoice: Invoice) => {
+    if (!invoice.id) {
+      setAlert({ type: "error", message: "Invalid invoice ID." });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await invoiceService.deleteInvoice(invoice.id);
+      setAlert({ type: "success", message: `Invoice ${invoice.invoiceNumber} deleted successfully.` });
+      getAllInvoices(); // Refresh the list
+      setIsDeleteModalOpen(false);
+      setInvoiceToDelete(null);
+    } catch (error) {
+      console.error("Delete Error:", error);
+      setAlert({ type: "error", message: "Failed to delete invoice." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkDeleteInvoices = async () => {
+    if (selectedInvoices.size === 0) {
+      setAlert({ type: "error", message: "No invoices selected for deletion." });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const deletePromises = Array.from(selectedInvoices).map(id => 
+        invoiceService.deleteInvoice(id)
+      );
+      
+      await Promise.all(deletePromises);
+      
+      setAlert({ 
+        type: "success", 
+        message: `${selectedInvoices.size} invoice(s) deleted successfully.` 
+      });
+      
+      setSelectedInvoices(new Set());
+      getAllInvoices(); // Refresh the list
+      setIsBulkDeleteModalOpen(false);
+    } catch (error) {
+      console.error("Bulk Delete Error:", error);
+      setAlert({ type: "error", message: "Failed to delete some invoices." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectInvoice = (invoiceId: string) => {
+    const newSelected = new Set(selectedInvoices);
+    if (newSelected.has(invoiceId)) {
+      newSelected.delete(invoiceId);
+    } else {
+      newSelected.add(invoiceId);
+    }
+    setSelectedInvoices(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedInvoices.size === filteredInvoices.length) {
+      setSelectedInvoices(new Set());
+    } else {
+      setSelectedInvoices(new Set(filteredInvoices.map(invoice => invoice.id!).filter(Boolean)));
+    }
+  };
+
   useEffect(() => {
     getAllInvoices();
   }, []);
@@ -79,7 +156,7 @@ const Invoices: React.FC = () => {
       invoice.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.paymentMode.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const invoiceDate = new Date(invoice.createdAt);
+    const invoiceDate = new Date(invoice.createdAt || new Date());
     const today = new Date();
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -123,7 +200,7 @@ const Invoices: React.FC = () => {
         <div class="invoice-details">
           <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
           <p><strong>Date:</strong> ${new Date(
-            invoice.createdAt
+            invoice.createdAt || new Date()
           ).toLocaleDateString()}</p>
           ${
             invoice.customerName
@@ -203,6 +280,21 @@ const Invoices: React.FC = () => {
           <Plus size={16} />
           Create Invoice
         </Button> */}
+        {selectedInvoices.size > 0 && (
+          <div className="bulk-actions">
+            <span className="selected-count">
+              {selectedInvoices.size} invoice(s) selected
+            </span>
+            <Button
+              variant="destructive"
+              onClick={() => setIsBulkDeleteModalOpen(true)}
+              disabled={loading}
+            >
+              <Trash size={16} />
+              Delete Selected
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="page-content">
@@ -263,6 +355,19 @@ const Invoices: React.FC = () => {
           <table className="data-table">
             <thead>
               <tr>
+                <th>
+                  <button
+                    className="select-all-btn"
+                    onClick={handleSelectAll}
+                    title={selectedInvoices.size === filteredInvoices.length ? "Deselect All" : "Select All"}
+                  >
+                    {selectedInvoices.size === filteredInvoices.length ? (
+                      <CheckSquare size={16} />
+                    ) : (
+                      <Square size={16} />
+                    )}
+                  </button>
+                </th>
                 <th>Invoice Number</th>
                 <th>Customer</th>
                 <th>Date</th>
@@ -275,21 +380,33 @@ const Invoices: React.FC = () => {
             </thead>
             <tbody>
               {filteredInvoices.map((invoice) => (
-                <tr key={invoice.id}>
+                <tr key={invoice.id} className={selectedInvoices.has(invoice.id!) ? 'selected-row' : ''}>
+                  <td>
+                    <button
+                      className="select-row-btn"
+                      onClick={() => handleSelectInvoice(invoice.id!)}
+                      title={selectedInvoices.has(invoice.id!) ? "Deselect" : "Select"}
+                    >
+                      {selectedInvoices.has(invoice.id!) ? (
+                        <CheckSquare size={16} />
+                      ) : (
+                        <Square size={16} />
+                      )}
+                    </button>
+                  </td>
                   <td>
                     <span className="invoice-number">
                       {invoice.invoiceNumber}
-                      {/* {console.log("Invoice Number:", invoice.invoiceNumber)} */}
                     </span>
                   </td>
                   <td>
                     <span className="customer-name">
-                      {invoice.customer?.name.charAt(0).toUpperCase() + invoice.customer?.name.slice(1) || "Walk-in Customer"}
+                      {invoice.customerName || "Walk-in Customer"}
                     </span>
                   </td>
                   <td>
                     <span className="invoice-date">
-                      {new Date(invoice.createdAt).toLocaleDateString()}
+                      {new Date(invoice.createdAt || new Date()).toLocaleDateString()}
                     </span>
                   </td>
                   <td>
@@ -319,18 +436,29 @@ const Invoices: React.FC = () => {
                       <button
                         className="action-btn action-btn-view"
                         onClick={() => {
-                          // setSelectedInvoice(invoice);
-                          handleViewInvoice(invoice.id);
+                          handleViewInvoice(invoice.id!);
                           setIsViewModalOpen(true);
                         }}
+                        title="View Invoice"
                       >
                         <Eye size={16} />
                       </button>
                       <button
                         className="action-btn action-btn-print"
                         onClick={() => handlePrintInvoice(invoice)}
+                        title="Print Invoice"
                       >
                         <Printer size={16} />
+                      </button>
+                      <button
+                        className="action-btn action-btn-delete"
+                        onClick={() => {
+                          setInvoiceToDelete(invoice);
+                          setIsDeleteModalOpen(true);
+                        }}
+                        title="Delete Invoice"
+                      >
+                        <Trash size={16} />
                       </button>
                     </div>
                   </td>
@@ -357,11 +485,11 @@ const Invoices: React.FC = () => {
               <div className="invoice-info">
                 <p>
                   <strong>Date:</strong>{" "}
-                  {new Date(selectedInvoice.createdAt).toLocaleDateString()}
+                  {new Date(selectedInvoice.createdAt || new Date()).toLocaleDateString()}
                 </p>
                 <p>
                   <strong>Customer:</strong>{" "}
-                  {selectedInvoice.customer?.name.charAt(0).toUpperCase() + selectedInvoice.customer?.name.slice(1) || "Walk-in Customer"}
+                  {selectedInvoice.customerName || "Walk-in Customer"}
                 </p>
                 <p>
                   <strong>Payment Mode:</strong>{" "}
@@ -387,17 +515,15 @@ const Invoices: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-              
                   {selectedInvoice?.invoiceItems?.length > 0 ? (
                     selectedInvoice.invoiceItems.map((item) => (
                       <tr key={item.id}>
                         <td>{item.productName}</td>
-                        <td>{item.variant.size}</td>
-                        <td>{item.variant.color}</td>
+                        <td>{item.variant?.size || item.size}</td>
+                        <td>{item.variant?.color || item.color}</td>
                         <td>{item.quantity}</td>
-                        <td>₹{(item.variant.price ?? 0).toLocaleString()}</td>
-
-                        <td>₹{(item.total ?? 0).toLocaleString()}</td>
+                        <td>₹{(item.variant?.price || item.unitPrice || 0).toLocaleString()}</td>
+                        <td>₹{(item.total || 0).toLocaleString()}</td>
                       </tr>
                     ))
                   ) : (
@@ -443,6 +569,83 @@ const Invoices: React.FC = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Delete Single Invoice Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setInvoiceToDelete(null);
+        }}
+        title="Delete Invoice"
+        size="sm"
+      >
+        {invoiceToDelete && (
+          <div className="delete-confirmation">
+            <p>
+              Are you sure you want to delete invoice{" "}
+              <strong>{invoiceToDelete.invoiceNumber}</strong>?
+            </p>
+            <p className="warning-text">
+              This action cannot be undone. The invoice and all its data will be permanently removed.
+            </p>
+            <div className="modal-actions">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setInvoiceToDelete(null);
+                }}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleDeleteInvoice(invoiceToDelete)}
+                disabled={loading}
+              >
+                {loading ? "Deleting..." : "Delete Invoice"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Bulk Delete Modal */}
+      <Modal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => {
+          setIsBulkDeleteModalOpen(false);
+        }}
+        title="Delete Multiple Invoices"
+        size="sm"
+      >
+        <div className="delete-confirmation">
+          <p>
+            Are you sure you want to delete <strong>{selectedInvoices.size} invoice(s)</strong>?
+          </p>
+          <p className="warning-text">
+            This action cannot be undone. All selected invoices and their data will be permanently removed.
+          </p>
+          <div className="modal-actions">
+            <Button
+              variant="outline"
+              onClick={() => setIsBulkDeleteModalOpen(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDeleteInvoices}
+              disabled={loading}
+            >
+              {loading ? "Deleting..." : `Delete ${selectedInvoices.size} Invoice(s)`}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

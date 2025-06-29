@@ -2364,3 +2364,123 @@
     font-size: 12px;
   }
 }
+
+/* Bulk Actions Styles */
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-4);
+  background-color: var(--primary-50);
+  border: 1px solid var(--primary-200);
+  border-radius: var(--radius-md);
+  margin-left: auto;
+}
+
+.selected-count {
+  font-size: 0.875rem;
+  color: var(--primary-700);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Selection Controls */
+.select-all-btn,
+.select-row-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--spacing-1);
+  border-radius: var(--radius-sm);
+  color: var(--secondary-600);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.select-all-btn:hover,
+.select-row-btn:hover {
+  background-color: var(--secondary-100);
+  color: var(--primary-600);
+}
+
+.select-all-btn:focus,
+.select-row-btn:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* Selected Row Styling */
+.selected-row {
+  background-color: var(--primary-50) !important;
+  border-left: 3px solid var(--primary-500);
+}
+
+.selected-row:hover {
+  background-color: var(--primary-100) !important;
+}
+
+/* Delete Button Styles */
+.action-btn-delete {
+  background-color: var(--error-50);
+  color: var(--error-600);
+  border: 1px solid var(--error-200);
+}
+
+.action-btn-delete:hover {
+  background-color: var(--error-100);
+  color: var(--error-700);
+  border-color: var(--error-300);
+}
+
+/* Delete Confirmation Modal */
+.delete-confirmation {
+  text-align: center;
+  padding: var(--spacing-4);
+}
+
+.delete-confirmation p {
+  margin-bottom: var(--spacing-3);
+  color: var(--secondary-700);
+  line-height: 1.5;
+}
+
+.delete-confirmation .warning-text {
+  color: var(--error-600);
+  font-size: 0.875rem;
+  background-color: var(--error-50);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--error-200);
+  margin: var(--spacing-3) 0;
+}
+
+.delete-confirmation strong {
+  color: var(--secondary-900);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Table Header Selection */
+.data-table th:first-child {
+  width: 50px;
+  text-align: center;
+}
+
+.data-table td:first-child {
+  text-align: center;
+  width: 50px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .bulk-actions {
+    flex-direction: column;
+    gap: var(--spacing-2);
+    margin-top: var(--spacing-3);
+    margin-left: 0;
+  }
+  
+  .selected-count {
+    text-align: center;
+  }
+}

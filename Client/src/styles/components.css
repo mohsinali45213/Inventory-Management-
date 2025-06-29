@@ -84,6 +84,35 @@
   background-color: var(--secondary-100);
 }
 
+/* Destructive Button Variant */
+.btn-destructive {
+  background-color: var(--error-600);
+  color: white;
+  border: 1px solid var(--error-600);
+}
+
+.btn-destructive:hover:not(:disabled) {
+  background-color: var(--error-700);
+  border-color: var(--error-700);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.btn-destructive:active {
+  background-color: var(--error-800);
+  border-color: var(--error-800);
+  transform: translateY(0);
+}
+
+.btn-destructive:disabled {
+  background-color: var(--error-300);
+  border-color: var(--error-300);
+  color: var(--error-100);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 /* Form styles */
 .form-group {
   margin-bottom: var(--spacing-4);
