@@ -353,13 +353,67 @@
   visibility: visible;
 }
 
-.payment-section .customer-info .search-customer .exist-customers .customer-info{
+.payment-section .customer-info .search-customer .exist-customers .customer-info-item{
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-2);
   border-radius: var(--radius-md);
-  
+}
+
+.payment-section .customer-info .search-customer .exist-customers .customer-info-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.payment-section .customer-info .search-customer .exist-customers .customer-info-item:hover::before {
+  left: 100%;
+}
+
+.payment-section .customer-info .search-customer .exist-customers .customer-info-item:hover {
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
+}
+
+.payment-section .customer-info .search-customer .exist-customers .customer-info-item p:first-child {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+  margin: 0;
+}
+
+.payment-section .customer-info .search-customer .exist-customers .customer-info-item p:last-child {
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 13px;
+  margin: 0;
+}
+
+.payment-section .customer-info .search-customer .exist-customers .customer-info-item.no-results {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.payment-section .customer-info .search-customer .exist-customers .customer-info-item.no-results:hover {
+  background: none;
+  transform: none;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.payment-section .customer-info .search-customer .exist-customers .customer-info-item.no-results p {
+  color: #9ca3af;
+  font-style: italic;
+  text-align: center;
+  width: 100%;
 }
 
 .payment-section .customer-info .customer-details{
@@ -1407,24 +1461,183 @@
 .stock-update-form {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: var(--spacing-6);
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  padding: var(--spacing-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--secondary-200);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
-.product-details {
-  background-color: var(--secondary-50);
-  padding: var(--spacing-4);
-  border-radius: var(--radius-md);
+.stock-update-form .product-details {
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  padding: var(--spacing-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--secondary-200);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
 }
 
-.product-details h4 {
+.stock-update-form .product-details::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-500), var(--primary-600));
+}
+
+.stock-update-form .product-details h4 {
   color: var(--secondary-900);
-  margin-bottom: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-semibold);
+  position: relative;
 }
 
-.product-details p {
+.stock-update-form .product-details p {
   color: var(--secondary-600);
   font-size: 0.875rem;
-  margin-bottom: var(--spacing-1);
+  margin-bottom: var(--spacing-2);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.stock-update-form .product-details p strong {
+  color: var(--secondary-900);
+  font-weight: var(--font-weight-semibold);
+}
+
+.stock-update-form .form-group {
+  margin-bottom: var(--spacing-4);
+}
+
+.stock-update-form .form-label {
+  display: block;
+  margin-bottom: var(--spacing-2);
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--secondary-700);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stock-update-form .form-input {
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--secondary-900);
+  background-color: white;
+  border: 2px solid var(--secondary-300);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.stock-update-form .form-input:focus {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.stock-update-form .form-input:hover {
+  border-color: var(--primary-400);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stock-update-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-4);
+  padding-top: var(--spacing-6);
+  border-top: 1px solid var(--secondary-200);
+  margin-top: var(--spacing-4);
+}
+
+.stock-update-form .form-actions button {
+  padding: var(--spacing-3) var(--spacing-6);
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.stock-update-form .form-actions button[type="button"] {
+  background-color: white;
+  color: var(--secondary-700);
+  border-color: var(--secondary-300);
+}
+
+.stock-update-form .form-actions button[type="button"]:hover {
+  background-color: var(--secondary-50);
+  border-color: var(--secondary-400);
+  color: var(--secondary-800);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stock-update-form .form-actions .update-stock-btn {
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+  color: white;
+  border-color: var(--primary-600);
+  padding: var(--spacing-3) var(--spacing-6);
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-semibold);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.stock-update-form .form-actions .update-stock-btn:hover {
+  background: linear-gradient(135deg, var(--primary-700), var(--primary-800));
+  border-color: var(--primary-700);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
+}
+
+.stock-update-form .form-actions .update-stock-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* Stock update modal specific enhancements */
+.modal-content .stock-update-form {
+  background: transparent;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+
+.modal-content .stock-update-form .product-details {
+  margin-bottom: var(--spacing-6);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stock-update-form {
+    padding: var(--spacing-4);
+    gap: var(--spacing-4);
+  }
+  
+  .stock-update-form .product-details {
+    padding: var(--spacing-4);
+  }
+  
+  .stock-update-form .form-actions {
+    flex-direction: column;
+    gap: var(--spacing-3);
+  }
+  
+  .stock-update-form .form-actions button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* Invoice styles */
@@ -2699,4 +2912,137 @@
   .chart-type-selector {
     justify-content: center;
   }
+}
+
+/* Update Stock Button styles */
+.update-stock-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-medium);
+  background-color: var(--primary-50);
+  color: var(--primary-700);
+  border: 1px solid var(--primary-200);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.update-stock-btn:hover {
+  background-color: var(--primary-100);
+  border-color: var(--primary-300);
+  color: var(--primary-800);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+}
+
+.update-stock-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.1);
+}
+
+.update-stock-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.update-stock-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.stock-update-form .form-actions .update-stock-btn {
+  background-color: var(--primary-600);
+  color: white;
+  border: none;
+  padding: var(--spacing-3) var(--spacing-6);
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.stock-update-form .form-actions .update-stock-btn:hover {
+  background-color: var(--primary-700);
+}
+
+/* Checkbox styles for invoice selection */
+.select-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary-600);
+}
+
+.select-checkbox:checked {
+  background-color: var(--primary-600);
+  border-color: var(--primary-600);
+}
+
+/* Delete confirmation modal styles */
+.delete-confirmation {
+  padding: var(--spacing-4);
+}
+
+.delete-confirmation p {
+  margin-bottom: var(--spacing-6);
+  color: var(--secondary-700);
+  line-height: 1.5;
+}
+
+.delete-confirmation strong {
+  color: var(--secondary-900);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Action button styles for delete */
+.action-btn-delete {
+  background-color: var(--error-50);
+  color: var(--error-600);
+  border: 1px solid var(--error-200);
+}
+
+.action-btn-delete:hover {
+  background-color: var(--error-100);
+  color: var(--error-700);
+  border-color: var(--error-300);
+}
+
+/* Page header with delete button */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-6);
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.page-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--primary-600);
+}
+
+.page-title h1 {
+  color: var(--secondary-900);
+  font-size: 1.875rem;
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+}
+
+.page-title p {
+  color: var(--secondary-600);
+  font-size: 0.875rem;
+  margin: 0;
 }

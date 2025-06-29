@@ -49,8 +49,8 @@ const StockManagement: React.FC = () => {
         productService.getAllProducts(),
       ]);
 
-      setBrands(brandRes.data || []);
-      setCategories(categoryRes.data || []);
+      setBrands(brandRes || []);
+      setCategories(categoryRes || []);
       setProducts(productRes || []);
     } catch (error) {
       console.error("Error loading data:", error);
@@ -310,6 +310,7 @@ const StockManagement: React.FC = () => {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="update-stock-btn"
                         onClick={() => handleUpdateStock(item)}
                       >
                         <Edit size={14} /> Update Stock
@@ -365,7 +366,12 @@ const StockManagement: React.FC = () => {
               >
                 Cancel
               </Button>
-              <Button type="submit">Update Stock</Button>
+              <Button 
+                type="submit"
+                className="update-stock-btn"
+              >
+                Update Stock
+              </Button>
             </div>
           </form>
         )}

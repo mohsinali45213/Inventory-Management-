@@ -280,8 +280,18 @@ export const getAllInvoicesWithItems = async (req, res) => {
             {
               model: ProductVariant,
               as: "variant", // ✅ alias must match association
+              include: [
+                {
+                  model: Product,
+                  as: "product",
+                },
+              ],
             },
           ],
+        },
+        {
+          model: Customer,
+          as: "customer",
         },
       ],
     });
@@ -345,8 +355,18 @@ export const getInvoiceById = async (req, res) => {
             {
               model: ProductVariant,
               as: "variant", // ✅ alias as defined in your Sequelize associations
+              include: [
+                {
+                  model: Product,
+                  as: "product",
+                },
+              ],
             },
           ],
+        },
+        {
+          model: Customer,
+          as: "customer",
         },
       ],
     });

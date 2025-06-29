@@ -21,18 +21,23 @@ const Barcode: React.FC = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [categoryRes, brandRes, variantRes,subCategoryRes] = await Promise.all([
+        const [categoryRes, brandRes, variantRes, subCategoryRes] = await Promise.all([
           CategoryService.getAllCategories(),
           BrandService.getAllBrand(),
           ProductService.getAllVariants(),
           SubCategoryService.getAllSubCategories()
         ]);
 
-        // ✅ Extract .data from response
-        setCategories(categoryRes.data || []);
-        setBrands(brandRes.data || []);
-        setSubCategories(subCategoryRes.data || []);
+        // ✅ Services return arrays directly, not objects with .data property
+        setCategories(categoryRes || []);
+        setBrands(brandRes || []);
+        setSubCategories(subCategoryRes || []);
         setVariants(variantRes || []);
+
+        // Debug: Log the first variant to understand the data structure
+        if (variantRes && variantRes.length > 0) {
+          console.log('First variant data structure:', variantRes[0]);
+        }
 
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -58,24 +63,72 @@ const Barcode: React.FC = () => {
     return matchesSearch && matchesCategory && matchesBrand;
   });
 
+  // Debug selectedItems changes
+  useEffect(() => {
+    console.log('Selected items changed:', {
+      selectedCount: selectedItems.size,
+      selectedItems: Array.from(selectedItems),
+      filteredItemsCount: filteredItems.length
+    });
+  }, [selectedItems, filteredItems.length]);
+
   const handleSelectItem = (itemKey: string) => {
     const newSelected = new Set(selectedItems);
     newSelected.has(itemKey) ? newSelected.delete(itemKey) : newSelected.add(itemKey);
     setSelectedItems(newSelected);
   };
 
-  const handleSelectAll = () => {
-    if (selectedItems.size === filteredItems.length) {
+  // Check if all filtered items are selected
+  const allSelected = filteredItems.length > 0 && 
+    filteredItems.every(item => selectedItems.has(`${item.productId}-${item.id}`));
+
+  // Clean up selectedItems to remove stale keys from previous filters
+  useEffect(() => {
+    const currentItemKeys = new Set(filteredItems.map(item => `${item.productId}-${item.id}`));
+    const cleanedSelectedItems = new Set(
+      Array.from(selectedItems).filter(key => currentItemKeys.has(key))
+    );
+    
+    if (cleanedSelectedItems.size !== selectedItems.size) {
+      setSelectedItems(cleanedSelectedItems);
+    }
+  }, [filteredItems, selectedItems]);
+
+  const handleToggleSelectAll = () => {
+    console.log('Toggle Select All clicked:', {
+      allSelected,
+      filteredItemsCount: filteredItems.length,
+      selectedItemsCount: selectedItems.size,
+      selectedItems: Array.from(selectedItems),
+      filteredItemKeys: filteredItems.map(item => `${item.productId}-${item.id}`)
+    });
+
+    if (allSelected) {
+      // If all are selected, deselect all
+      console.log('Deselect All clicked');
       setSelectedItems(new Set());
     } else {
-      setSelectedItems(new Set(filteredItems.map(item => `${item.productId}-${item.variantId}`)));
+      // If not all are selected, select all
+      const allItemKeys = filteredItems.map(item => `${item.productId}-${item.id}`);
+      console.log('Select All clicked:', {
+        filteredItemsCount: filteredItems.length,
+        allItemKeys: allItemKeys,
+        currentSelectedCount: selectedItems.size
+      });
+      setSelectedItems(new Set(allItemKeys));
     }
   };
 
   const handlePrintSelected = () => {
     const selectedItemsData = filteredItems.filter(item =>
-      selectedItems.has(`${item.productId}-${item.variantId}`)
+      selectedItems.has(`${item.productId}-${item.id}`)
     );
+
+    console.log('Print Selected clicked:', {
+      selectedItemsCount: selectedItems.size,
+      selectedItemsDataCount: selectedItemsData.length,
+      selectedItemsData: selectedItemsData
+    });
 
     if (selectedItemsData.length === 0) {
       alert('Please select items to print');
@@ -90,7 +143,7 @@ const Barcode: React.FC = () => {
       return `
         <div class="label">
           <div class="shop-name">CLOTHING STORE</div>
-          <div class="product-name">${item.productName}</div>
+          <div class="product-name">${item.product.name}</div>
           <div class="product-variant">${item.size} • ${item.color}</div>
           <div class="price">₹${item.price.toLocaleString()}</div>
           <img src="${barcodeDataURL}" alt="Barcode" class="barcode-img" />
@@ -237,8 +290,8 @@ const Barcode: React.FC = () => {
         </div>
 
         <div className="barcode-actions">
-          <Button variant="outline" onClick={handleSelectAll}>
-            {selectedItems.size === filteredItems.length ? 'Deselect All' : 'Select All'}
+          <Button variant="outline" onClick={handleToggleSelectAll} disabled={filteredItems.length === 0}>
+            {allSelected ? 'Deselect All' : 'Select All'}
           </Button>
           <span className="selection-count">
             {selectedItems.size} of {filteredItems.length} items selected
@@ -247,7 +300,7 @@ const Barcode: React.FC = () => {
 
         <div className="barcode-grid">
           {filteredItems.map(item => {
-            const itemKey = `${item.productId}-${item.variantId}`;
+            const itemKey = `${item.productId}-${item.id}`;
             const isSelected = selectedItems.has(itemKey);
             const barcodeDataURL = generateBarcodeDataURL(item.barcode);
 

@@ -199,8 +199,8 @@ const SubCategories: React.FC = () => {
                     </td>
                     <td>
                       {" "}
-                      <span className="brand-category">
-                        {(allCategories || []).find((c: any) => c.id === data.categoryId)?.name || 'Unknown'}
+                      <span className="brand-slug" style={{textTransform: 'capitalize',backgroundColor:'var(--primary-200)',padding: '5px 10px',borderRadius: '5px'}}>
+                        {data.category.name}
                       </span>
                     </td>
                     <td>

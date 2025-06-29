@@ -798,8 +798,9 @@ const Dashboard: React.FC = () => {
   };
 
   const handleCustomerSearch = (e: any) => {
-    setCustomerSearch(e.target.value);
-    if(e.target.value.length > 0){
+    const searchValue = e.target.value;
+    setCustomerSearch(searchValue);
+    if(searchValue.length > 0){
       setCustomerToggle(true)
     }else{
       setCustomerToggle(false)
@@ -810,13 +811,20 @@ const Dashboard: React.FC = () => {
     setCustomerInfo(prev => ({
       ...prev,
       name: customer.name,
-      phone: customer.phone,
+      phone: customer.phoneNumber, // Use phoneNumber from backend model
     }));
     setCustomerSearch(customer.name);
     setCustomerToggle(false);
     showMessage('success', `Customer ${customer.name} selected`);
+    setCustomerSearch('');
   };
-  
+
+  const handleCustomerKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setCustomerToggle(false);
+    }
+  };
+
   const filterProducts = allProducts.filter((item: any) => {
     return (
       item.product.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
@@ -903,14 +911,14 @@ const Dashboard: React.FC = () => {
                         <RotateCcw size={14} />
                         Load
                       </button>
-                      <button 
+                      {/* <button 
                         className="draft-btn convert"
                         onClick={() => handleConvertDraftToInvoice(draft.id)}
                         disabled={loading}
                       >
                         <Printer size={14} />
                         Convert to Invoice
-                      </button>
+                      </button> */}
                       <button 
                         className="draft-btn delete"
                         onClick={() => handleDeleteDraft(draft.id)}
@@ -1077,10 +1085,10 @@ const Dashboard: React.FC = () => {
         <div className="customer-info">
           <div className="head">
             <h2>Customer Info</h2>
-            <button className="btn-add-customer">
+            {/* <button className="btn-add-customer">
               <Plus size={15} />
               <p>Add Customer</p>
-            </button>
+            </button> */}
           </div>
           <div className="search-customer">
             <input 
@@ -1088,11 +1096,16 @@ const Dashboard: React.FC = () => {
               placeholder="Search Customer" 
               value={customerSearch} 
               onChange={handleCustomerSearch}
+              onKeyDown={handleCustomerKeyPress}
               className="customer-search-input"
             />
             <div className={`exist-customers ${customerToggle ? 'active' : ''}`}>
               {allCustomers?.filter((customer: any) => {
-                return customer?.name?.toLowerCase().includes(customerSearch.toLowerCase()) || customer?.phone?.toLowerCase().includes(customerSearch.toLowerCase())
+                const searchTerm = customerSearch.toLowerCase().trim();
+                const customerName = (customer?.name || '').toLowerCase();
+                const customerPhone = (customer?.phoneNumber || '').toLowerCase();
+                
+                return customerName.includes(searchTerm) || customerPhone.includes(searchTerm);
               }).map((customer: any) => (
                 <div 
                   className="customer-info-item" 
@@ -1100,9 +1113,20 @@ const Dashboard: React.FC = () => {
                   onClick={() => handleCustomerSelect(customer)}
                 >
                   <p>{customer.name}</p>
-                  <p>{customer.phone}</p>
+                  <p>{customer.phoneNumber}</p>
                 </div>
               ))}
+              {customerToggle && allCustomers?.filter((customer: any) => {
+                const searchTerm = customerSearch.toLowerCase().trim();
+                const customerName = (customer?.name || '').toLowerCase();
+                const customerPhone = (customer?.phoneNumber || '').toLowerCase();
+                
+                return customerName.includes(searchTerm) || customerPhone.includes(searchTerm);
+              }).length === 0 && (
+                <div className="customer-info-item no-results">
+                  <p>No customers found</p>
+                </div>
+              )}
             </div>
           </div>
           <div className="customer-details">
