@@ -10,7 +10,7 @@ const createProductWithVariants = async (product: Product) => {
       name: product.name,
       brandId: product.brandId,
       categoryId: product.categoryId,
-      subCategoryId: product.subcategoryId,
+      subCategoryId: product.subCategoryId,
       // status: product.status,
       variants: product.variants.map((variant) => ({
         size: variant.size,
@@ -99,7 +99,7 @@ const updateProductWithVariants = async (
     // 🔧 Construct request body exactly how your backend expects it
     const payload = {
       name: product.name,
-      subcategory: product.subCategoryId,
+      subCategoryId: product.subCategoryId,
       categoryId: product.categoryId,
       brandId: product.brandId,
       variants: variants.map((variant) => ({

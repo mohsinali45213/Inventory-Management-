@@ -73,6 +73,37 @@ export const getAllSubCategories = async (req, res) => {
   }
 };
 
+// ✅ Get SubCategories By Category ID
+export const getSubCategoriesByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    if (!categoryId) {
+      return res.status(400).json({
+        success: false,
+        message: "Category ID is required",
+      });
+    }
+
+    const subCategories = await SubCategory.findAll({
+      where: { categoryId },
+      include: [{ model: Category, as: "category" }],
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Subcategories fetched successfully",
+      data: subCategories,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch subcategories",
+      error: error.message,
+    });
+  }
+};
+
 // ✅ Get SubCategory By ID
 export const getSubCategoryById = async (req, res) => {
   try {

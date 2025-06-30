@@ -40,6 +40,7 @@ const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]); // ✅ correct
   const [categories, setAllCategories] = useState<Category[] | any[]>([]);
   const [subcategories, setSubcategories] = useState<Category[] | any[]>([]);
+  const [filteredSubcategories, setFilteredSubcategories] = useState<Category[] | any[]>([]);
   const [allBrand, setAllBrand] = useState<Brand[] | any[]>([]);
   const [productName, setProductName] = useState("");
   // const [subcategory, setSubcategory] = useState("")
@@ -133,6 +134,27 @@ const Products: React.FC = () => {
     getAllBrands();
     getAllSubCategories();
   }, []);
+
+  // Filter subcategories based on selected category
+  useEffect(() => {
+    const fetchSubcategoriesByCategory = async () => {
+      if (selectedCategory) {
+        try {
+          const filtered = await SubCategoryService.getSubCategoriesByCategory(selectedCategory);
+          setFilteredSubcategories(filtered);
+        } catch (error) {
+          console.error("Error fetching subcategories by category:", error);
+          setFilteredSubcategories([]);
+        }
+      } else {
+        setFilteredSubcategories([]);
+      }
+      // Reset subcategory selection when category changes
+      setSelectedSubcategory("");
+    };
+
+    fetchSubcategoriesByCategory();
+  }, [selectedCategory]);
 
   // Filter products based on search term and selected filters
   const filteredProducts = Array.isArray(products)
@@ -321,6 +343,7 @@ const Products: React.FC = () => {
     setSelectedSubcategory("");
     setSelectedBrand("");
     setVariants([{ id: "", size: "", color: "", price: 0, stock_qty: 0 }]);
+    setFilteredSubcategories([]);
 
     // Reset edit states
     setIsEditMode(false);
@@ -739,14 +762,14 @@ const Products: React.FC = () => {
                 <select
                   className="form-select"
                   required
-                  disabled={isVariantEditMode}
+                  disabled={isVariantEditMode || !selectedCategory}
                   value={selectedSubcategory}
                   onChange={(e) => setSelectedSubcategory(e.target.value)}
                 >
                   <option value="" disabled>
-                    Select Subcategory
+                    {selectedCategory ? "Select Subcategory" : "Select Category First"}
                   </option>
-                  {(subcategories || []).map((subcategory) => (
+                  {(filteredSubcategories || []).map((subcategory) => (
                     <option key={subcategory.id} value={subcategory.id}>
                       {subcategory.name}
                     </option>

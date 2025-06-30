@@ -47,7 +47,7 @@ const SubCategories: React.FC = () => {
   const getAllCategories = async () => {
     try {
       const categories: any = await CategoryService.getAllCategories();
-      setAllCategories(categories.data || []);
+      setAllCategories(categories || []);
     } catch (error) {
       setAlert({ type: "error", message: "Failed to fetch categories." });
       setAllCategories([]); // Set empty array on error
@@ -59,6 +59,11 @@ const SubCategories: React.FC = () => {
     const { name, status, categoryId } = formData;
     if (!name.trim()) {
       setAlert({ type: "error", message: "Subcategory name is required" });
+      return;
+    }
+
+    if (!categoryId) {
+      setAlert({ type: "error", message: "Please select a category" });
       return;
     }
 
@@ -273,11 +278,13 @@ const SubCategories: React.FC = () => {
           <label>Category</label>
           <select
             className="category-select"
-            value={formData.categoryId} // ✅ bind value
+            value={formData.categoryId}
             onChange={(e) =>
               setFormData({ ...formData, categoryId: e.target.value })
             }
+            required
           >
+            <option value="">Select Category</option>
             {allCategories?.map((data) => (
               <option key={data.id} value={data.id}>
                 {data.name}

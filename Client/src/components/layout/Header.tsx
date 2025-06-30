@@ -17,79 +17,6 @@ const Header: React.FC = () => {
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const { setTriggerAddModal  } = useModal();
-
-  // const fetchProducts = async () => {
-  //   try {
-  //     const response = await ProductService.getAllProducts();
-  //     setProducts(response.data);
-  //   } catch (error) {
-  //     console.error("Error fetching products:", error);
-  //   }
-  // };
-
-  // const fetchBrands = async () => {
-  //   try {
-  //     const response = await BransService.getAllBrands();
-  //     setBrands(response.data);
-  //   } catch (error) {
-  //     console.error("Error fetching brands:", error);
-  //   }
-  // };
-
-  // const fetchCategories = async () => {
-  //   try {
-  //     const response = await CategoryService.getAllCategories();
-  //     setCategories(response.data);
-  //   } catch (error) {
-  //     console.error("Error fetching categories:", error);
-  //   }
-  // };
-
-  // const fetchSubCategories = async () => {
-  //   try {
-  //     const response = await SubCategoryService.getAllSubCategories();
-  //     setSubCategories(response.data);
-  //   } catch (error) {
-  //     console.error("Error fetching subcategories:", error);
-  //   }
-  // };
-
-  // const [searchParams, setSearchParams] = useState({
-  //   category: '',
-  //   subcategory: '',
-  //   brand: '',
-  //   name: '',
-  // });
-
-  // const [filteredProducts, setFilteredProducts] = useState([]);
-
-  // useEffect(() => {
-  //   filterProducts();
-  // }, [searchParams]);
-
-  // const handleChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setSearchParams((prev) => ({
-  //     ...prev,
-  //     [name]: value.toLowerCase(),
-  //   }));
-  // };
-
-  // const filterProducts = () => {
-  //   const { category, subcategory, brand, name } = searchParams;
-
-  //   const result = products.filter((product) => {
-  //     return (
-  //       (!category || product.category.toLowerCase().includes(category)) &&
-  //       (!subcategory || product.subcategory.toLowerCase().includes(subcategory)) &&
-  //       (!brand || product.brand.toLowerCase().includes(brand)) &&
-  //       (!name || product.name.toLowerCase().includes(name))
-  //     );
-  //   });
-
-  //   setFilteredProducts(result);
-  // };
-
   return (
     <header className="header">
       <div className="header-content">
@@ -97,22 +24,10 @@ const Header: React.FC = () => {
           <div className="logo">
             <h1>ClothingInv</h1>
           </div>
-
-          <div className="search-container">
-            <Search className="search-icon" size={20} />
-            <input
-              type="text"
-              placeholder="Search products, categories, brands..."
-              className="search-input"
-            />
-          </div>
         </div>
 
         <div className="header-right">
-          <button className="header-icon-btn">
-            <Bell size={20} />
-            <span className="notification-badge">3</span>
-          </button>
+        
 
           <div className="quick-add-dropdown">
             <button

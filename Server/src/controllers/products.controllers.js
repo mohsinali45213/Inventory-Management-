@@ -72,12 +72,12 @@ export const updateProductWithVariants = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const { name, subcategory, categoryId, brandId, variants = [] } = req.body;
+    const { name, subCategoryId, categoryId, brandId, variants = [] } = req.body;
 
     console.log("🔍 Debug - Backend received:", {
       id,
       name,
-      subcategory,
+      subCategoryId,
       categoryId,
       brandId,
       variants: variants.map(v => ({ id: v.id, size: v.size, color: v.color, price: v.price, stock_qty: v.stock_qty }))
@@ -94,7 +94,7 @@ export const updateProductWithVariants = async (req, res) => {
       {
         name,
         slug: slugify(name).toLowerCase(),
-        subcategory,
+        subCategoryId,
         categoryId,
         brandId,
       },

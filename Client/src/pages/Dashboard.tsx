@@ -141,17 +141,17 @@ const Dashboard: React.FC = () => {
 
   const getAllDrafts = async () => {
     try {
-      console.log('Fetching drafts...');
+      // console.log('Fetching drafts...');
       const response = await invoiceDraftService.getAllInvoiceDrafts();
-      console.log('Drafts response:', response);
-      console.log('Drafts data structure:', response.data);
+      // console.log('Drafts response:', response);
+      // console.log('Drafts data structure:', response.data);
       if (response.data && response.data.length > 0) {
-        console.log('First draft structure:', response.data[0]);
-        console.log('First draft total type:', typeof response.data[0].total);
-        console.log('First draft total value:', response.data[0].total);
+        // console.log('First draft structure:', response.data[0]);
+        // console.log('First draft total type:', typeof response.data[0].total);
+        // console.log('First draft total value:', response.data[0].total);
       }
       setInvoiceDrafts(response.data || []);
-      console.log('Drafts set to:', response.data || []);
+      // console.log('Drafts set to:', response.data || []);
     } catch (error) {
       console.error("Error fetching drafts:", error);
     }
@@ -790,7 +790,6 @@ const Dashboard: React.FC = () => {
       const response = await fetch(`${API_URL}/customers`);
       const result = await response.json();
       setAllCustomers(result.data || []);
-      console.log(result.data);
     } catch (error) {
       console.error("Error fetching customers:", error);
       setAllCustomers([]); // Set empty array on error

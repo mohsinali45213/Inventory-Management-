@@ -48,17 +48,20 @@ const Barcode: React.FC = () => {
   }, []);
 
   const filteredItems = variants.filter(item => {
+    // Add null checks for item.product and its nested properties
+    if (!item?.product) return false;
+    
     const matchesSearch =
-      item?.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item?.product.category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item?.product.subCategory.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item?.product.brand.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item?.size.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item?.color.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item?.barcode.includes(searchTerm);
+      (item.product.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.product.category?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.product.subCategory?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.product.brand?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item?.size?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item?.color?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item?.barcode || '').includes(searchTerm);
 
-    const matchesCategory = categoryFilter === 'all' || item?.product.category.name === categoryFilter;
-    const matchesBrand = brandFilter === 'all' || item?.product.brand.name === brandFilter;
+    const matchesCategory = categoryFilter === 'all' || item.product.category?.name === categoryFilter;
+    const matchesBrand = brandFilter === 'all' || item.product.brand?.name === brandFilter;
 
     return matchesSearch && matchesCategory && matchesBrand;
   });
@@ -139,13 +142,13 @@ const Barcode: React.FC = () => {
     if (!printWindow) return;
 
     const labelsHtml = selectedItemsData.map(item => {
-      const barcodeDataURL = generateBarcodeDataURL(item.barcode);
+      const barcodeDataURL = generateBarcodeDataURL(item.barcode || '');
       return `
         <div class="label">
           <div class="shop-name">CLOTHING STORE</div>
-          <div class="product-name">${item.product.name}</div>
-          <div class="product-variant">${item.size} • ${item.color}</div>
-          <div class="price">₹${item.price.toLocaleString()}</div>
+          <div class="product-name">${item.product?.name || 'Unknown Product'}</div>
+          <div class="product-variant">${item.size || 'N/A'} • ${item.color || 'N/A'}</div>
+          <div class="price">₹${(item.price || 0).toLocaleString()}</div>
           <img src="${barcodeDataURL}" alt="Barcode" class="barcode-img" />
         </div>
       `;
@@ -304,6 +307,11 @@ const Barcode: React.FC = () => {
             const isSelected = selectedItems.has(itemKey);
             const barcodeDataURL = generateBarcodeDataURL(item.barcode);
 
+            // Add null check for item.product
+            if (!item.product) {
+              return null; // Skip rendering this item if product is null
+            }
+
             return (
               <div key={itemKey} className={`barcode-card ${isSelected ? 'selected' : ''}`}>
                 <div className="barcode-card-header">
@@ -314,37 +322,38 @@ const Barcode: React.FC = () => {
                     className="barcode-checkbox"
                   />
                   <div className="product-info">
-                    <div className="product-name">{item.product.name}</div>
-                    <div className="product-variant">{item.size} • {item.color}</div>
+                    <div className="product-name">{item.product.name || 'Unknown Product'}</div>
+                    <div className="product-variant">{item.size || 'N/A'} • {item.color || 'N/A'}</div>
                     <div className="product-details">
-                      <span className="category-badge">{item.product.category.name}</span>
-                      <span className="brand-badge">{item.product.subCategory.name}</span>
-                      <span className="brand-badge">{item.product.brand.name}</span>
+                      
+                      <span className="category-badge">{item.product.category?.name || 'Unknown Category'}</span>
+                      <span className="brand-badge">{item.product.subCategory?.name || 'Unknown SubCategory'}</span>
+                      <span className="brand-badge">{item.product.brand?.name || 'Unknown Brand'}</span>
                     </div>
                   </div>
                 </div>
                 <div className="barcode-preview">
                   <div className="label-preview">
                     <div className="label-shop-name">CLOTHING STORE</div>
-                    <div className="label-product-name">{item.product.name}</div>
-                    <div className="label-variant">{item.size} • {item.color}</div>
-                    <div className="label-price">₹{item.price.toLocaleString()}</div>
+                    <div className="label-product-name">{item.product.name || 'Unknown Product'}</div>
+                    <div className="label-variant">{item.size || 'N/A'} • {item.color || 'N/A'}</div>
+                    <div className="label-price">₹{(item.price || 0).toLocaleString()}</div>
                     <img src={barcodeDataURL} alt="Barcode" className="label-barcode" />
                   </div>
                 </div>
                 <div className="barcode-card-footer">
                   <div className="barcode-info">
-                    <div className="barcode-number">Barcode: {item.barcode}</div>
-                    <div className="stock-info">Stock: {item.stock_qty}</div>
+                    <div className="barcode-number">Barcode: {item.barcode || 'N/A'}</div>
+                    <div className="stock-info">Stock: {item.stock_qty || 0}</div>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() =>
                       printBarcode(
-                        item.barcode,
-                        `${item.product.name} (${item.size} • ${item.color})`,
-                        item.price
+                        item.barcode || '',
+                        `${item.product.name || 'Unknown Product'} (${item.size || 'N/A'} • ${item.color || 'N/A'})`,
+                        item.price || 0
                       )
                     }
                   >

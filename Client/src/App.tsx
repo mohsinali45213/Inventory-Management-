@@ -12,9 +12,10 @@ import Brands from './pages/Brands';
 import StockManagement from './pages/StockManagement';
 import Invoices from './pages/Invoices';
 import LowStock from './pages/LowStock';
-import Barcode from './pages/Barcode';
 import Reports from './pages/Reports';
+import Barcode from './pages/Barcode';
 import SubCategories from './pages/SubCategories';
+import PageNotFound from './pages/PageNotFound';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -38,9 +39,11 @@ const AppRoutes: React.FC = () => {
         <Route path="brands" element={<Brands />} />
         <Route path="stock" element={<StockManagement />} />
         <Route path="invoices" element={<Invoices />} />
+        <Route path="reports" element={<Reports />} />
         {/* <Route path="low-stock" element={<LowStock />} /> */}
         <Route path="barcode" element={<Barcode />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="*" element={<PageNotFound />} />
       </Route>
     </Routes>
   );
