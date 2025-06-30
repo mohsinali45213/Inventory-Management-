@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { InventoryProvider } from './context/InventoryContext';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import Categories from './pages/Categories';
@@ -14,6 +13,7 @@ import Invoices from './pages/Invoices';
 import Reports from './pages/Reports';
 import Barcode from './pages/Barcode';
 import SubCategories from './pages/SubCategories';
+import Users from './pages/Users';
 import PageNotFound from './pages/PageNotFound';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -25,7 +25,6 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
       <Route path="/" element={
         <ProtectedRoute>
           <Layout />
@@ -40,6 +39,7 @@ const AppRoutes: React.FC = () => {
         <Route path="invoices" element={<Invoices />} />
         <Route path="reports" element={<Reports />} />
         <Route path="barcode" element={<Barcode />} />
+        <Route path="users" element={<Users />} />
         <Route path="*" element={<PageNotFound />} />
       </Route>
     </Routes>

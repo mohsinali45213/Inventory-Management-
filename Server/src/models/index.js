@@ -10,6 +10,7 @@ import InvoiceItem from "./invoiceItem.models.js";
 import Customer from "./customers.models.js";
 import InvoiceDraft from "./invoice_draft.models.js";
 import InvoiceDraftItem from "./Invoice_draft_item.models.js";
+import Admin from "./admin.models.js";
 
 const models = {
   Category,
@@ -22,6 +23,7 @@ const models = {
   Customer,
   InvoiceDraft,
   InvoiceDraftItem,
+  Admin,
 };
 
 Object.values(models).forEach((model) => {
@@ -44,6 +46,7 @@ export {
   Customer,
   InvoiceDraft,
   InvoiceDraftItem,
+  Admin,
 };
 
 export { sequelize as db };

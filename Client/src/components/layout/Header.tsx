@@ -59,7 +59,7 @@ const Header: React.FC = () => {
                 <div className="dropdown-item dropdown-item-info">
                   <div className="user-info">
                     <div className="user-name">{user?.name}</div>
-                    <div className="user-email">{user?.email}</div>
+                    <div className="user-phone">{user?.phone}</div>
                   </div>
                 </div>
                 <hr />

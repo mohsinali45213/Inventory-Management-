@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '../types';
+import { API_URL } from '../config/config';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  login: (phone: string, password: string) => Promise<boolean>;
+  register: (name: string, phone: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -39,39 +40,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    if (email === 'admin@inventory.com' && password === 'admin123') {
-      const userData: User = {
-        id: '1',
-        name: 'Admin User',
-        email: 'admin@inventory.com',
-        role: 'admin'
-      };
-      
-      localStorage.setItem('auth_token', 'mock_jwt_token');
-      localStorage.setItem('user_data', JSON.stringify(userData));
-      setUser(userData);
-      setIsAuthenticated(true);
-      return true;
+  const login = async (phone: string, password: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_URL}/admin/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const userData: User = {
+          id: data.data.admin.id,
+          name: data.data.admin.name,
+          phone: data.data.admin.phone,
+          role: 'admin',
+          status: data.data.admin.status,
+        };
+        
+        localStorage.setItem('auth_token', data.data.token);
+        localStorage.setItem('user_data', JSON.stringify(userData));
+        setUser(userData);
+        setIsAuthenticated(true);
+        return true;
+      } else {
+        console.error('Login failed:', data.message);
+        return false;
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
-    return false;
   };
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    const userData: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      role: 'user'
-    };
-    
-    localStorage.setItem('auth_token', 'mock_jwt_token');
-    localStorage.setItem('user_data', JSON.stringify(userData));
-    setUser(userData);
-    setIsAuthenticated(true);
-    return true;
+  const register = async (name: string, phone: string, password: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_URL}/admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: JSON.stringify({ name, phone, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const userData: User = {
+          id: data.data.id,
+          name: data.data.name,
+          phone: data.data.phone,
+          role: 'admin',
+          status: data.data.status,
+        };
+        
+        localStorage.setItem('auth_token', 'mock_jwt_token');
+        localStorage.setItem('user_data', JSON.stringify(userData));
+        setUser(userData);
+        setIsAuthenticated(true);
+        return true;
+      } else {
+        console.error('Registration failed:', data.message);
+        return false;
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      return false;
+    }
   };
 
   const logout = () => {

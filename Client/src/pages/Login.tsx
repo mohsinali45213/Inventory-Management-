@@ -8,7 +8,7 @@ import Alert from '../components/common/Alert';
 const Login: React.FC = () => {
   const { login, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
-    email: '',
+    phone: '',
     password: ''
   });
   const [error, setError] = useState('');
@@ -24,9 +24,9 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(formData.email, formData.password);
+      const success = await login(formData.phone, formData.password);
       if (!success) {
-        setError('Invalid email or password');
+        setError('Invalid phone number or password');
       }
     } catch (err) {
       setError('An error occurred during login');
@@ -55,25 +55,29 @@ const Login: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="auth-form">
-          <Input
-            label="Email Address"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Enter your email"
-            required
-          />
+          <div className="input-group">
+            <Input
+              label="Phone Number"
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="Enter your phone number"
+              required
+            />
+          </div>
 
-          <Input
-            label="Password"
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Enter your password"
-            required
-          />
+          <div className="input-group">
+            <Input
+              label="Password"
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Enter your password"
+              required
+            />
+          </div>
 
           <div className="auth-options">
             <label className="checkbox-label">
@@ -101,14 +105,6 @@ const Login: React.FC = () => {
               Sign up
             </Link>
           </p>
-        </div>
-
-        <div className="demo-credentials">
-          <div className="demo-title">Demo Credentials:</div>
-          <div className="demo-info">
-            <strong>Email:</strong> admin@inventory.com<br />
-            <strong>Password:</strong> admin123
-          </div>
         </div>
       </div>
     </div>

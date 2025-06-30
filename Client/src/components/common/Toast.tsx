@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './../../../src/styles/Toast.css';
 
 interface ToastProps {
@@ -9,6 +9,16 @@ interface ToastProps {
 }
 
 const Toast: React.FC<ToastProps> = ({ type, text, details, onClose }) => {
+  // Auto-close toast after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+
+    // Cleanup timer on component unmount
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
   return (
     <div className={`toast toast-${type}`}> 
       <div className="toast-content">
