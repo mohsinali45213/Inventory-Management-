@@ -35,28 +35,24 @@ const StockManagement: React.FC = () => {
     if (alert) {
       const timer = setTimeout(() => {
         setAlert(null);
-      }, 3000); // 3 seconds
-
-      return () => clearTimeout(timer); // Clean up
+      }, 3000);
+      return () => clearTimeout(timer);
     }
   }, [alert]);
 
   const loadData = async () => {
     try {
-      const [brandRes, categoryRes, productRes] = await Promise.all([
-        BrandService.getAllBrand(),
-        CategoryService.getAllCategories(),
+      const [productsRes, categoriesRes, brandsRes] = await Promise.all([
         productService.getAllProducts(),
+        CategoryService.getAllCategories(),
+        BrandService.getAllBrand()
       ]);
 
-      setBrands(brandRes || []);
-      setCategories(categoryRes || []);
-      setProducts(productRes || []);
+      setProducts(productsRes);
+      setCategories(categoriesRes);
+      setBrands(brandsRes);
     } catch (error) {
-      console.error("Error loading data:", error);
-      setBrands([]);
-      setCategories([]);
-      setProducts([]);
+      // Error loading data
     }
   };
 
@@ -67,11 +63,6 @@ const StockManagement: React.FC = () => {
   const getBrandName = (id: string) => {
     return (brands || []).find((b : any) => b.id === id)?.name || 'Unknown';
   };
-
-  useEffect(() => {
-    console.log("Categories:", categories);
-    console.log("Brands:", brands);
-  }, [categories, brands]);
 
   const stockItems = products.flatMap((product) =>
     product.variants.map((variant) => ({
@@ -105,53 +96,31 @@ const StockManagement: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
 
-  const handleUpdateStock = (item: any) => {
-    setSelectedVariant(item);
-    setNewStock(item.stock.toString());
-    setIsUpdateModalOpen(true);
-  };
-
-  const handleSubmitStockUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!selectedVariant) return;
-
-    const stockValue = parseInt(newStock);
-    if (isNaN(stockValue) || stockValue < 0) {
-      setAlert({ type: "error", message: "Enter a valid stock quantity" });
-      return;
-    }
-
+  const handleUpdateStock = async (variantId: string, newStock: number) => {
     try {
-      await productService.updateVariant(selectedVariant.variantId, {
-        size: selectedVariant.size,
-        color: selectedVariant.color,
-        price: selectedVariant.price,
-        stock_qty: stockValue,
-      });
+      const variant = products
+        .flatMap(p => p.variants)
+        .find(v => v.id === variantId);
 
-      setProducts((prev) =>
-        prev.map((product) =>
-          product.id === selectedVariant.productId
-            ? {
-                ...product,
-                variants: product.variants.map((variant) =>
-                  variant.id === selectedVariant.variantId
-                    ? { ...variant, stock_qty: stockValue }
-                    : variant
-                ),
-              }
-            : product
-        )
-      );
+      if (!variant) {
+        setAlert({ type: "error", message: "Variant not found" });
+        return;
+      }
 
-      setAlert({ type: "success", message: "Stock updated successfully" });
-      setIsUpdateModalOpen(false);
-      setSelectedVariant(null);
-      setNewStock("");
+      const updatedVariant = { ...variant, stock_qty: newStock };
+      const result = await productService.updateVariant(variantId, updatedVariant);
+
+      if (result.success) {
+        setAlert({ type: "success", message: "Stock updated successfully" });
+        loadData();
+        setIsUpdateModalOpen(false);
+        setSelectedVariant(null);
+        setNewStock("");
+      } else {
+        setAlert({ type: "error", message: result.message });
+      }
     } catch (error) {
-      console.error(error);
-      setAlert({ type: "error", message: "Failed to update stock" });
+      // Error updating stock
     }
   };
 
@@ -311,7 +280,11 @@ const StockManagement: React.FC = () => {
                         size="sm"
                         variant="outline"
                         className="update-stock-btn"
-                        onClick={() => handleUpdateStock(item)}
+                        onClick={() => {
+                          setSelectedVariant(item);
+                          setNewStock(item.stock.toString());
+                          setIsUpdateModalOpen(true);
+                        }}
                       >
                         <Edit size={14} /> Update Stock
                       </Button>
@@ -334,7 +307,10 @@ const StockManagement: React.FC = () => {
         title="Update Stock"
       >
         {selectedVariant && (
-          <form onSubmit={handleSubmitStockUpdate} className="stock-update-form">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            handleUpdateStock(selectedVariant.variantId, parseInt(newStock));
+          }} className="stock-update-form">
             <div className="product-details">
               <h4>{selectedVariant.productName}</h4>
               <p>Size: {selectedVariant.size} • Color: {selectedVariant.color}</p>

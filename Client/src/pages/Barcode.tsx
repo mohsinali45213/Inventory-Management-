@@ -18,37 +18,29 @@ const Barcode: React.FC = () => {
   const [brands, setBrands] = useState<any[]>([]);
   const [subCategories, setSubCategories] = useState<any[]>([]);
 
+  const loadData = async () => {
+    try {
+      const variantRes = await ProductService.getAllVariants();
+      setVariants(variantRes || []);
+    } catch (error) {
+      // Failed to fetch data
+    }
+  };
+
+  const fetchInitialData = async () => {
+    try {
+      const variantRes = await ProductService.getAllVariants();
+      setVariants(variantRes || []);
+    } catch (error) {
+      // Failed to fetch data
+    }
+  };
+
   useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const [categoryRes, brandRes, variantRes, subCategoryRes] = await Promise.all([
-          CategoryService.getAllCategories(),
-          BrandService.getAllBrand(),
-          ProductService.getAllVariants(),
-          SubCategoryService.getAllSubCategories()
-        ]);
-
-        // ✅ Services return arrays directly, not objects with .data property
-        setCategories(categoryRes || []);
-        setBrands(brandRes || []);
-        setSubCategories(subCategoryRes || []);
-        setVariants(variantRes || []);
-
-        // Debug: Log the first variant to understand the data structure
-        if (variantRes && variantRes.length > 0) {
-          console.log('First variant data structure:', variantRes[0]);
-        }
-
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
-      }
-    };
-
     fetchInitialData();
   }, []);
 
   const filteredItems = variants.filter(item => {
-    // Add null checks for item.product and its nested properties
     if (!item?.product) return false;
     
     const matchesSearch =
@@ -66,26 +58,15 @@ const Barcode: React.FC = () => {
     return matchesSearch && matchesCategory && matchesBrand;
   });
 
-  // Debug selectedItems changes
-  useEffect(() => {
-    console.log('Selected items changed:', {
-      selectedCount: selectedItems.size,
-      selectedItems: Array.from(selectedItems),
-      filteredItemsCount: filteredItems.length
-    });
-  }, [selectedItems, filteredItems.length]);
-
   const handleSelectItem = (itemKey: string) => {
     const newSelected = new Set(selectedItems);
     newSelected.has(itemKey) ? newSelected.delete(itemKey) : newSelected.add(itemKey);
     setSelectedItems(newSelected);
   };
 
-  // Check if all filtered items are selected
   const allSelected = filteredItems.length > 0 && 
     filteredItems.every(item => selectedItems.has(`${item.productId}-${item.id}`));
 
-  // Clean up selectedItems to remove stale keys from previous filters
   useEffect(() => {
     const currentItemKeys = new Set(filteredItems.map(item => `${item.productId}-${item.id}`));
     const cleanedSelectedItems = new Set(
@@ -98,26 +79,10 @@ const Barcode: React.FC = () => {
   }, [filteredItems, selectedItems]);
 
   const handleToggleSelectAll = () => {
-    console.log('Toggle Select All clicked:', {
-      allSelected,
-      filteredItemsCount: filteredItems.length,
-      selectedItemsCount: selectedItems.size,
-      selectedItems: Array.from(selectedItems),
-      filteredItemKeys: filteredItems.map(item => `${item.productId}-${item.id}`)
-    });
-
     if (allSelected) {
-      // If all are selected, deselect all
-      console.log('Deselect All clicked');
       setSelectedItems(new Set());
     } else {
-      // If not all are selected, select all
       const allItemKeys = filteredItems.map(item => `${item.productId}-${item.id}`);
-      console.log('Select All clicked:', {
-        filteredItemsCount: filteredItems.length,
-        allItemKeys: allItemKeys,
-        currentSelectedCount: selectedItems.size
-      });
       setSelectedItems(new Set(allItemKeys));
     }
   };
@@ -126,12 +91,6 @@ const Barcode: React.FC = () => {
     const selectedItemsData = filteredItems.filter(item =>
       selectedItems.has(`${item.productId}-${item.id}`)
     );
-
-    console.log('Print Selected clicked:', {
-      selectedItemsCount: selectedItems.size,
-      selectedItemsDataCount: selectedItemsData.length,
-      selectedItemsData: selectedItemsData
-    });
 
     if (selectedItemsData.length === 0) {
       alert('Please select items to print');

@@ -62,7 +62,6 @@ export const createProductWithVariants = async (req, res) => {
       variants: createdVariants,
     });
   } catch (error) {
-    console.error("❌ Error in createProductWithVariants:", error);
     return res.status(500).json({ error: "Server error: " + error.message });
   }
 };
@@ -74,16 +73,6 @@ export const updateProductWithVariants = async (req, res) => {
     const { id } = req.params;
     const { name, subCategoryId, categoryId, brandId, variants = [] } = req.body;
 
-    console.log("🔍 Debug - Backend received:", {
-      id,
-      name,
-      subCategoryId,
-      categoryId,
-      brandId,
-      variants: variants.map(v => ({ id: v.id, size: v.size, color: v.color, price: v.price, stock_qty: v.stock_qty }))
-    });
-
-    // 1️⃣ Update Product Details
     const product = await Product.findByPk(id, { transaction });
 
     if (!product) {
@@ -101,7 +90,6 @@ export const updateProductWithVariants = async (req, res) => {
       { transaction }
     );
 
-    // 2️⃣ Sync Variants
     const existingVariants = await ProductVariant.findAll({
       where: { productId: id },
       transaction,
@@ -110,7 +98,6 @@ export const updateProductWithVariants = async (req, res) => {
     const existingVariantIds = existingVariants.map((v) => v.id);
     const incomingVariantIds = variants.filter((v) => v.id).map((v) => v.id);
 
-    // 🟥 Delete removed variants
     const variantsToDelete = existingVariantIds.filter(
       (vid) => !incomingVariantIds.includes(vid)
     );
@@ -122,20 +109,16 @@ export const updateProductWithVariants = async (req, res) => {
       });
     }
 
-    // 🟩 Update or Create Variants
     for (const variant of variants) {
-      console.log("🔍 Debug - Processing variant:", variant);
       if (variant.id && existingVariantIds.includes(variant.id)) {
-        // Update existing variant
         const updateData = {
           size: variant.size,
           slug: slugify(`${variant.size}-${variant.color}-${Date.now()}`).toLowerCase(),
           barcode: generateBarcode(),
           color: variant.color,
           price: variant.price,
-          stock_qty: variant.stock_qty, // ✅ Changed to expect stock_qty from request body
+          stock_qty: variant.stock_qty,
         };
-        console.log("🔍 Debug - Updating variant with data:", updateData);
         await ProductVariant.update(
           updateData,
           {
@@ -144,7 +127,6 @@ export const updateProductWithVariants = async (req, res) => {
           }
         );
       } else {
-        // Create new variant
         const createData = {
           productId: id,
           size: variant.size,
@@ -152,9 +134,8 @@ export const updateProductWithVariants = async (req, res) => {
           barcode: generateBarcode(),
           color: variant.color,
           price: variant.price,
-          stock_qty: variant.stock_qty, // ✅ Changed to expect stock_qty from request body
+          stock_qty: variant.stock_qty,
         };
-        console.log("🔍 Debug - Creating variant with data:", createData);
         await ProductVariant.create(
           createData,
           { transaction }
@@ -168,7 +149,6 @@ export const updateProductWithVariants = async (req, res) => {
       .json({ message: "Product and variants updated successfully" });
   } catch (error) {
     await transaction.rollback();
-    console.error("Error updating product:", error);
     res.status(500).json({ message: "Failed to update product", error });
   }
 };
@@ -234,8 +214,6 @@ export const getProductById = async (req, res) => {
   }
 };
 
-
-
 export const deleteProductWithVariants = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
@@ -247,37 +225,30 @@ export const deleteProductWithVariants = async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    // This will also delete associated variants due to cascade delete
     await product.destroy({ transaction });
 
     await transaction.commit();
     return res.status(200).json({ message: 'Product and its variants deleted successfully' });
   } catch (error) {
     await transaction.rollback();
-    console.error('Delete failed:', error);
     return res.status(500).json({ message: 'Internal server error', error });
   }
 };
-
-
 
 export const deleteProductVariant = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if variant exists
     const variant = await ProductVariant.findByPk(id);
 
     if (!variant) {
       return res.status(404).json({ message: "Product variant not found" });
     }
 
-    // Delete the variant
     await variant.destroy();
 
     return res.status(200).json({ message: "Product variant deleted successfully" });
   } catch (error) {
-    console.error("Error deleting variant:", error);
     return res.status(500).json({
       message: "Failed to delete product variant",
       error: error.message,
@@ -285,23 +256,18 @@ export const deleteProductVariant = async (req, res) => {
   }
 };
 
-
-
-
 // ✅ Update Product Variant
 export const updateProductVariant = async (req, res) => {
   try {
     const { id } = req.params;
     const { size, color, price, stock_qty, barcode, slug } = req.body;
 
-    // Find the variant
     const variant = await ProductVariant.findByPk(id);
 
     if (!variant) {
       return res.status(404).json({ message: "Product variant not found" });
     }
 
-    // Update the fields (validate here or in middleware if needed)
     variant.size = size ?? variant.size;
     variant.color = color ?? variant.color;
     variant.price = price ?? variant.price;
@@ -309,7 +275,6 @@ export const updateProductVariant = async (req, res) => {
     variant.barcode = barcode ?? variant.barcode;
     variant.slug = slug ?? variant.slug;
 
-    // Save updated variant
     await variant.save();
 
     return res.status(200).json({
@@ -317,7 +282,6 @@ export const updateProductVariant = async (req, res) => {
       variant,
     });
   } catch (error) {
-    console.error("Update error:", error);
     return res.status(500).json({
       message: "Failed to update product variant",
       error: error.message,

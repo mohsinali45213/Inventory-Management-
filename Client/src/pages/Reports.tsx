@@ -249,7 +249,6 @@ const Reports: React.FC = () => {
   return (
     <div className="reports-container min-h-screen">
       <div className="p-4 md:p-6 lg:p-8 space-y-6">
-        {/* Page Header */}
         <div className="page-header bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg border-0 p-4 md:p-6">
           <div className="page-title flex items-center gap-4">
             <div className="page-icon bg-white bg-opacity-20 backdrop-blur-sm p-3 rounded-xl">
@@ -261,7 +260,6 @@ const Reports: React.FC = () => {
             </div>
           </div>
           
-          {/* Reports Controls */}
           <div className="reports-controls mt-4 md:mt-6">
             <div className="date-range-picker">
               <select
@@ -288,7 +286,6 @@ const Reports: React.FC = () => {
           </div>
         </div>
 
-        {/* Key Metrics - Enhanced Stats Grid */}
         <div className="stats-grid gap-4 md:gap-6">
           <div className="stat-card bg-gradient-to-br from-blue-500 to-blue-600 border-0 shadow-lg">
             <div className="stat-card-content">
@@ -355,9 +352,7 @@ const Reports: React.FC = () => {
           </div>
         </div>
 
-        {/* Charts and Detailed Reports */}
         <div className="reports-charts gap-6">
-          {/* Sales Trend Chart */}
           <div className="chart-card bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg">
             <div className="chart-header bg-gradient-to-r from-blue-600 to-blue-700 text-white">
               <h3 className="text-lg font-semibold text-white">Sales Trend</h3>
@@ -385,7 +380,6 @@ const Reports: React.FC = () => {
             </div>
           </div>
 
-          {/* Category Performance */}
           <div className="chart-card bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-lg">
             <div className="chart-header bg-gradient-to-r from-green-600 to-green-700 text-white">
               <h3 className="text-lg font-semibold text-white">Category Performance</h3>
@@ -411,7 +405,6 @@ const Reports: React.FC = () => {
           </div>
         </div>
 
-        {/* Brand Performance */}
         <div className="chart-card bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 shadow-lg">
           <div className="chart-header bg-gradient-to-r from-purple-600 to-purple-700 text-white">
             <h3 className="text-lg font-semibold text-white">Brand Performance</h3>
@@ -439,7 +432,6 @@ const Reports: React.FC = () => {
           </div>
         </div>
 
-        {/* Stock Alerts and Customer Summary */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="chart-card bg-gradient-to-br from-red-50 to-red-100 border-red-200 shadow-lg">
             <div className="chart-header bg-gradient-to-r from-red-600 to-red-700 text-white">
@@ -504,7 +496,6 @@ const Reports: React.FC = () => {
           </div>
         </div>
 
-        {/* Recent Invoices - Full Width */}
         <div className="chart-card w-full bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 shadow-lg">
           <div className="chart-header bg-gradient-to-r from-gray-600 to-gray-700 text-white">
             <h3 className="text-lg font-semibold text-white">Recent Invoices</h3>
@@ -567,7 +558,6 @@ const Reports: React.FC = () => {
         </div>
       </div>
 
-      {/* Toast Notification */}
       {showToast && (
         <Toast
           text={toastMessage}

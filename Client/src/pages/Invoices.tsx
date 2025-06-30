@@ -1,32 +1,23 @@
 import React, { useEffect, useState } from "react";
 import {
-  // Plus,
   Search,
-  // Filter,
   Eye,
   Printer,
   FileText,
   Trash2,
-  // Calendar,
 } from "lucide-react";
-// import { useInventory } from "../context/InventoryContext";
 import Modal from "../components/common/Modal";
 import Button from "../components/common/Button";
-// import Input from "../components/common/Input";
 import Alert from "../components/common/Alert";
 import { Invoice, InvoiceItem } from "../types";
 import invoiceService from "../functions/invoice";
-// import { API_URL } from "../config/config";
-// import Categories from "./Categories";
 
 const Invoices: React.FC = () => {
-  // const { state, dispatch } = useInventory();
   const [getInvoices, setGetAllInvoices] = useState<Invoice[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState<
     "all" | "today" | "week" | "month"
   >("all");
-  // const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -37,7 +28,6 @@ const Invoices: React.FC = () => {
     message: string;
   } | null>(null);
 
-  // Alert state for timeInterval
   useEffect(() => {
     if (alert) {
       const timer = setTimeout(() => setAlert(null), 3000);
@@ -49,10 +39,9 @@ const Invoices: React.FC = () => {
     try {
       const invoices: any = await invoiceService.getAllInvoices();
       setGetAllInvoices(invoices || []);
-      // console.log("invoices fetched successfully:", invoices);
     } catch (error) {
       setAlert({ type: "error", message: "Failed to fetch invoices." });
-      setGetAllInvoices([]); // Set empty array on error
+      setGetAllInvoices([]);
     }
   };
 
@@ -62,14 +51,12 @@ const Invoices: React.FC = () => {
 
       const fullInvoice = {
         ...invoice,
-        items: invoice.invoiceItems || invoice.invoiceItems || [], // for safety
+        items: invoice.invoiceItems || invoice.invoiceItems || [],
       };
 
       setSelectedInvoice(fullInvoice);
-      console.log("Selected Invoice:", fullInvoice);
       setIsViewModalOpen(true);
     } catch (error) {
-      console.error("Invoice Fetch Error:", error);
       setAlert({ type: "error", message: "Failed to load invoice details." });
     }
   };
@@ -78,7 +65,7 @@ const Invoices: React.FC = () => {
     try {
       await invoiceService.deleteInvoice(invoiceId);
       setAlert({ type: "success", message: "Invoice deleted successfully." });
-      getAllInvoices(); // Refresh the list
+      getAllInvoices();
       setIsDeleteModalOpen(false);
       setSelectedInvoice(null);
     } catch (error) {
@@ -93,7 +80,7 @@ const Invoices: React.FC = () => {
       setAlert({ type: "success", message: `${selectedInvoices.length} invoice(s) deleted successfully.` });
       setSelectedInvoices([]);
       setIsSelectAll(false);
-      getAllInvoices(); // Refresh the list
+      getAllInvoices();
       setIsDeleteModalOpen(false);
     } catch (error) {
       setAlert({ type: "error", message: "Failed to delete some invoices." });
@@ -203,62 +190,46 @@ const Invoices: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              ${invoice.invoiceItems
-                .map(
-                  (item) => `
+              ${invoice.invoiceItems?.map(item => `
                 <tr>
-                  <td>${item.variant?.product?.name || item.productName || 'N/A'}</td>
+                  <td>${item.variant?.product?.name || 'N/A'}</td>
                   <td>${item.variant?.size || item.size || 'N/A'}</td>
                   <td>${item.variant?.color || item.color || 'N/A'}</td>
                   <td>${item.quantity}</td>
                   <td>₹${(item.variant?.price || item.unitPrice || 0).toLocaleString()}</td>
                   <td>₹${(item.total || 0).toLocaleString()}</td>
                 </tr>
-              `
-                )
-                .join("")}
+              `).join('') || ''}
             </tbody>
           </table>
 
           <div class="totals">
-            <p>Subtotal: ₹${invoice.subtotal.toLocaleString()}</p>
-            ${
-              invoice.discount > 0
-                ? `<p>Discount: -₹${invoice.discount.toLocaleString()}</p>`
-                : ""
-            }
-            <p>Tax: ₹${invoice.tax.toLocaleString()}</p>
-            <p class="total-row">Total: ₹${invoice.total.toLocaleString()}</p>
+            <div class="total-row">
+              <span>Subtotal: ₹${invoice.subtotal?.toLocaleString() || '0'}</span>
+            </div>
+            ${invoice.discount > 0 ? `
+              <div class="total-row">
+                <span>Discount: -₹${invoice.discount.toLocaleString()}</span>
+              </div>
+            ` : ''}
+            <div class="total-row">
+              <span>Tax: ₹${invoice.tax?.toLocaleString() || '0'}</span>
+            </div>
+            <div class="total-row">
+              <span>Total: ₹${invoice.total?.toLocaleString() || '0'}</span>
+            </div>
           </div>
-
-          <div class="no-print" style="margin-top: 20px; text-align: center;">
-            <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Print Invoice</button>
-            <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">Close</button>
-          </div>
-
-          <script>
-            // Auto-print after a short delay to ensure content is loaded
-            setTimeout(function() {
-              window.print();
-            }, 500);
-            
-            window.onafterprint = function() {
-              // Don't auto-close, let user close manually
-            };
-          </script>
         </body>
         </html>
       `;
 
       printWindow.document.write(printContent);
       printWindow.document.close();
-      
-      // Focus the window
       printWindow.focus();
-      
+      printWindow.print();
+      printWindow.close();
     } catch (error) {
-      console.error("Print error:", error);
-      setAlert({ type: "error", message: "Failed to open print window. Please try again." });
+      setAlert({ type: "error", message: "Failed to print invoice" });
     }
   };
 
@@ -282,10 +253,6 @@ const Invoices: React.FC = () => {
             Delete Selected ({selectedInvoices.length})
           </Button>
         )}
-        {/* <Button onClick={() => setIsCreateModalOpen(true)}>
-          <Plus size={16} />
-          Create Invoice
-        </Button> */}
       </div>
 
       <div className="page-content">
@@ -378,7 +345,6 @@ const Invoices: React.FC = () => {
                   <td>
                     <span className="invoice-number">
                       {invoice.invoiceNumber}
-                      {/* {console.log("Invoice Number:", invoice.invoiceNumber)} */}
                     </span>
                   </td>
                   <td>
@@ -420,7 +386,6 @@ const Invoices: React.FC = () => {
                       <button
                         className="action-btn action-btn-view"
                         onClick={() => {
-                          // setSelectedInvoice(invoice);
                           if (invoice.id) {
                             handleViewInvoice(invoice.id);
                             setIsViewModalOpen(true);
@@ -453,7 +418,6 @@ const Invoices: React.FC = () => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => {
@@ -497,7 +461,6 @@ const Invoices: React.FC = () => {
         </div>
       </Modal>
 
-      {/* View Invoice Modal */}
       <Modal
         isOpen={isViewModalOpen}
         onClose={() => {
@@ -545,8 +508,6 @@ const Invoices: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-      
-
                   {selectedInvoice?.invoiceItems?.length > 0 ? (
                     selectedInvoice.invoiceItems.map((item) => (
                       <tr key={item.id}>
@@ -555,7 +516,6 @@ const Invoices: React.FC = () => {
                         <td>{item.variant?.color || item.color}</td>
                         <td>{item.quantity}</td>
                         <td>₹{(item.variant?.price || item.unitPrice || 0).toLocaleString()}</td>
-
                         <td>₹{(item.total ?? 0).toLocaleString()}</td>
                       </tr>
                     ))

@@ -1,6 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
-import Customer from "./customers.models.js"; // Assuming you have a Customer model defined
+import Customer from "./customers.models.js";
 
 const InvoiceDraft = sequelize.define(
   "invoice_draft",

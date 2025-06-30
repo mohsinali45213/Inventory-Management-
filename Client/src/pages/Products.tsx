@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Plus, Search, Filter, Edit, Trash2, Eye, Package } from "lucide-react";
-// import { useInventory } from "../context/InventoryContext";
 import Modal from "../components/common/Modal";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
@@ -11,16 +10,8 @@ import BrandService from "../functions/brand";
 import SubCategoryService from "../functions/subCategory";
 import Alert from "../components/common/Alert";
 import { useModal } from "../context/ModalContext";
-// import deleteProductWithVariants  from "../functions/product"; // Adjust the import path as necessary
-
-// interface ProductsProps {
-//   triggerAddModal: boolean;
-//   setTriggerAddModal: React.Dispatch<React.SetStateAction<boolean>>;
-// }
 
 const Products: React.FC = () => {
-  // const { state } = useInventory();
-
   const { triggerAddModal, setTriggerAddModal } = useModal();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,19 +28,17 @@ const Products: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
-  const [products, setProducts] = useState<Product[]>([]); // ✅ correct
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setAllCategories] = useState<Category[] | any[]>([]);
   const [subcategories, setSubcategories] = useState<Category[] | any[]>([]);
   const [filteredSubcategories, setFilteredSubcategories] = useState<Category[] | any[]>([]);
   const [allBrand, setAllBrand] = useState<Brand[] | any[]>([]);
   const [productName, setProductName] = useState("");
-  // const [subcategory, setSubcategory] = useState("")
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
 
-  // State for filter modal
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -62,7 +51,7 @@ const Products: React.FC = () => {
   useEffect(() => {
     if (triggerAddModal) {
       setIsAddModalOpen(true);
-      if (setTriggerAddModal) setTriggerAddModal(false); // reset
+      if (setTriggerAddModal) setTriggerAddModal(false);
     }
   }, [triggerAddModal]);
 
@@ -70,9 +59,9 @@ const Products: React.FC = () => {
     if (alert) {
       const timer = setTimeout(() => {
         setAlert(null);
-      }, 3000); // 3 seconds
+      }, 3000);
 
-      return () => clearTimeout(timer); // Clean up
+      return () => clearTimeout(timer);
     }
   }, [alert]);
 
@@ -87,14 +76,12 @@ const Products: React.FC = () => {
     { id: "", size: "", color: "", price: "", stock_qty: "" },
   ]);
 
-  // const [products, setProducts] = useState<any[]>([]);
-
   const fetchAllProducts = async () => {
     try {
       const result = await ProductService.getAllProducts();
       setProducts(result);
     } catch (error) {
-      console.error("Failed to fetch products", error);
+      // Failed to fetch products
     }
   };
 
@@ -103,7 +90,6 @@ const Products: React.FC = () => {
       const categories = await CategoryService.getAllCategories();
       setAllCategories(categories || []);
     } catch (error) {
-      console.error("Error fetching categories:", error);
       setAllCategories([]);
     }
   };
@@ -113,7 +99,6 @@ const Products: React.FC = () => {
       const brands = await BrandService.getAllBrand();
       setAllBrand(brands || []);
     } catch (error) {
-      console.error("Error fetching brands:", error);
       setAllBrand([]);
     }
   };
@@ -123,7 +108,6 @@ const Products: React.FC = () => {
       const subCategories = await SubCategoryService.getAllSubCategories();
       setSubcategories(subCategories || []);
     } catch (error) {
-      console.error("Error fetching subcategories:", error);
       setSubcategories([]);
     }
   };
@@ -135,7 +119,6 @@ const Products: React.FC = () => {
     getAllSubCategories();
   }, []);
 
-  // Filter subcategories based on selected category
   useEffect(() => {
     const fetchSubcategoriesByCategory = async () => {
       if (selectedCategory) {
@@ -143,20 +126,17 @@ const Products: React.FC = () => {
           const filtered = await SubCategoryService.getSubCategoriesByCategory(selectedCategory);
           setFilteredSubcategories(filtered);
         } catch (error) {
-          console.error("Error fetching subcategories by category:", error);
           setFilteredSubcategories([]);
         }
       } else {
         setFilteredSubcategories([]);
       }
-      // Reset subcategory selection when category changes
       setSelectedSubcategory("");
     };
 
     fetchSubcategoriesByCategory();
   }, [selectedCategory]);
 
-  // Filter products based on search term and selected filters
   const filteredProducts = Array.isArray(products)
     ? products.filter((product) => {
         const productPrices = product.variants.map((v: any) => v.price);
@@ -290,50 +270,86 @@ const Products: React.FC = () => {
   // ✅ Handle form submission for both create and update
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = {
+
+    if (!productName.trim()) {
+      setAlert({ type: "error", message: "Product name is required" });
+      return;
+    }
+
+    if (!selectedCategory) {
+      setAlert({ type: "error", message: "Please select a category" });
+      return;
+    }
+
+    if (!selectedSubcategory) {
+      setAlert({ type: "error", message: "Please select a subcategory" });
+      return;
+    }
+
+    if (!selectedBrand) {
+      setAlert({ type: "error", message: "Please select a brand" });
+      return;
+    }
+
+    const validVariants = variants.filter(
+      (variant) =>
+        variant.size.trim() &&
+        variant.color.trim() &&
+        variant.price !== "" &&
+        variant.stock_qty !== ""
+    );
+
+    if (validVariants.length === 0) {
+      setAlert({ type: "error", message: "At least one variant is required" });
+      return;
+    }
+
+    const productData: Product = {
       id: "",
       name: productName,
+      categoryId: selectedCategory,
       subCategoryId: selectedSubcategory,
       brandId: selectedBrand,
-      categoryId: selectedCategory,
-      variants: variants.map((v) => ({
-        id: v.id, // include only for update
-        size: v.size,
-        color: v.color,
-        price: Number(v.price),
-        stock_qty: Number(v.stock_qty),
+      variants: validVariants.map((variant) => ({
+        id: variant.id || "",
+        size: variant.size,
+        color: variant.color,
+        price: Number(variant.price),
+        stock_qty: Number(variant.stock_qty),
+        barcode: "",
       })),
     };
+
     try {
-      let response: any;
-
       if (isEditMode && editingProductId) {
-        // ✅ Update product
-        response = await ProductService.updateProductWithVariants(
+        const result = await ProductService.updateProductWithVariants(
           editingProductId,
-          payload,
-          payload.variants // ✅ Consistent argument type
+          productData,
+          validVariants
         );
-      } else {
-        // ✅ Create product
-        response = await ProductService.createProductWithVariants(payload);
-      }
 
-      if (response.success) {
-        setAlert({
-          type: "success",
-          message: isEditMode ? "✅ Product updated!" : "✅ Product added!",
-        });
-
-        // Reset form fields
-        resetForm(); // ✅ Reset form state
-        fetchAllProducts(); // ✅ Refresh product list
+        if (result.success) {
+          setAlert({ type: "success", message: "Product updated successfully" });
+          fetchAllProducts();
+          setIsAddModalOpen(false);
+          resetForm();
+        } else {
+          setAlert({ type: "error", message: result.message });
+        }
       } else {
-        setAlert({ type: "error", message: "❌ " + response.message });
+        const result = await ProductService.createProductWithVariants(productData);
+
+        if (result.success) {
+          setAlert({ type: "success", message: "Product added successfully" });
+          fetchAllProducts();
+          setIsAddModalOpen(false);
+          resetForm();
+        } else {
+          setAlert({ type: "error", message: result.message });
+        }
       }
-    } catch (err) {
-      console.error("❌ Failed to submit product:", err);
-      setAlert({ type: "error", message: "❌ Error submitting product" });
+    } catch (err: any) {
+      setAlert({ type: "error", message: err.message || "Failed to submit product" });
     }
   };
 
@@ -359,13 +375,21 @@ const Products: React.FC = () => {
   };
 
   const handleEditProduct = (product: Product) => {
-    console.log(product);
-
-    // 1. Set values into input fields
     setProductName(product.name);
     setSelectedCategory(product.categoryId);
     setSelectedSubcategory(product.subCategoryId);
     setSelectedBrand(product.brandId);
+    setVariants(
+      product.variants.map((variant) => ({
+        id: variant.id,
+        size: variant.size,
+        color: variant.color,
+        price: variant.price.toString(),
+        stock_qty: variant.stock_qty.toString(),
+      }))
+    );
+    setEditingProductId(product.id);
+    setIsEditMode(true);
 
     // 2. Format and set variant fields
     const formattedVariants = product.variants.map((variant: any) => ({
@@ -387,27 +411,33 @@ const Products: React.FC = () => {
   // Handle update variant
   const handleUpdateVariant = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingVariantIndex === null) return;
+
+    if (!editingVariantIndex) return;
 
     const variant = variants[editingVariantIndex];
+    if (!variant.size.trim() || !variant.color.trim() || !variant.price || !variant.stock_qty) {
+      setAlert({ type: "error", message: "All variant fields are required" });
+      return;
+    }
+
     try {
-      const response = await ProductService.updateVariant(variant.id!, variant);
-      if (response.success) {
-        setAlert({ type: "success", message: "✅ Variant updated!" });
-        setIsVariantEditMode(false);
-        setEditingVariantIndex(null);
+      const result = await ProductService.updateVariant(variant.id!, {
+        size: variant.size,
+        color: variant.color,
+        price: Number(variant.price),
+        stock_qty: Number(variant.stock_qty),
+      });
+
+      if (result.success) {
+        setAlert({ type: "success", message: "Variant updated successfully" });
         fetchAllProducts();
-        setAlert({
-          type: "success",
-          message: "✅ Variant updated successfully!",
-        });
-        resetForm(); // Reset
+        setIsAddModalOpen(false);
+        resetForm();
       } else {
-        setAlert({ type: "error", message: "❌ " + response.message });
+        setAlert({ type: "error", message: result.message });
       }
-    } catch (err) {
-      console.error("❌ Failed to update variant:", err);
-      setAlert({ type: "error", message: "❌ Error updating variant" });
+    } catch (err: any) {
+      setAlert({ type: "error", message: err.message || "Failed to update variant" });
     }
   };
 
@@ -703,7 +733,6 @@ const Products: React.FC = () => {
         </div>
       </div>
 
-      {/* Custom Product Modal */}
       {(isEditMode || isAddModalOpen || isVariantEditMode) && (
         <Modal
           isOpen={isEditMode || isAddModalOpen || isVariantEditMode}
@@ -711,7 +740,7 @@ const Products: React.FC = () => {
             setIsEditMode(false);
             setIsAddModalOpen(false);
             setIsVariantEditMode(false);
-            resetForm(); // Reset form state
+            resetForm();
           }}
           title={
             isVariantEditMode
@@ -916,8 +945,6 @@ const Products: React.FC = () => {
               </Button>
 
               <Button type="submit">
-                {/* {isEditMode ? "Update Product" : "Add Product"} */}
-
                 {isVariantEditMode
                   ? "Update Variant"
                   : isEditMode

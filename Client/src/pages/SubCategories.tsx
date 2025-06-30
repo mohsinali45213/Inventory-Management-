@@ -129,9 +129,9 @@ const SubCategories: React.FC = () => {
     if (alert) {
       const timer = setTimeout(() => {
         setAlert(null);
-      }, 3000); // 3 seconds
+      }, 3000);
 
-      return () => clearTimeout(timer); // Clean up
+      return () => clearTimeout(timer);
     }
   }, [alert]);
 
@@ -139,7 +139,6 @@ const SubCategories: React.FC = () => {
     <div className="page">
       <div className="page-header">
         <div className="page-title">
-          {/* <Tag className="page-icon" /> */}
           <Folders className="page-icon" />
           <div>
             <h1>Sub Category</h1>

@@ -39,7 +39,6 @@ const createProductWithVariants = async (product: Product) => {
       variants: result.variants,
     };
   } catch (error: any) {
-    console.error("❌ createProductWithVariants Error:", error);
     return {
       success: false,
       message: error.message || "Unknown error",
@@ -63,7 +62,6 @@ const getAllProducts = async (): Promise<Product[]> => {
 
     return result.data; // ✅ This is the array of product objects
   } catch (error: any) {
-    console.error("❌ Error fetching products:", error);
     throw new Error(error?.message || "Something went wrong");
   }
 };
@@ -85,7 +83,6 @@ const getProductById = async (productId: string): Promise<Product> => {
 
     return result.data; // ✅ Product with variants, brand, category, subcategory
   } catch (error: any) {
-    console.error("❌ Error fetching product by ID:", error);
     throw new Error(error?.message || "Something went wrong");
   }
 };
@@ -96,22 +93,19 @@ const updateProductWithVariants = async (
   variants: ProductVariant[]
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    // 🔧 Construct request body exactly how your backend expects it
     const payload = {
       name: product.name,
       subCategoryId: product.subCategoryId,
       categoryId: product.categoryId,
       brandId: product.brandId,
       variants: variants.map((variant) => ({
-        id: variant.id || undefined, // undefined for new variants
+        id: variant.id || undefined,
         size: variant.size,
         color: variant.color,
         price: variant.price,
-        stock_qty: variant.stock_qty, // ✅ Changed to stock_qty to match backend expectation
+        stock_qty: variant.stock_qty,
       })),
     };
-
-    console.log("🔍 Debug - Payload being sent:", JSON.stringify(payload, null, 2));
 
     const response = await fetch(`${API_URL}/products/${productId}`, {
       method: "PUT",
@@ -122,7 +116,6 @@ const updateProductWithVariants = async (
     });
 
     const result = await response.json();
-    console.log("🔍 Debug - Response received:", result);
 
     if (!response.ok) {
       throw new Error(result.message || "Failed to update product.");
@@ -130,25 +123,21 @@ const updateProductWithVariants = async (
 
     return { success: true, message: result.message };
   } catch (error: any) {
-    console.error("❌ Error updating product with variants:", error);
     return { success: false, message: error.message || "Unknown error" };
   }
 };
 
 const updateVariant = async (
-  // productId: string,
   variantId: string,
   variant: ProductVariant
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    // Prepare data matching the backend controller's expected keys
     const payload = {
       size: variant.size,
       color: variant.color,
       price: variant.price,
-      stock_qty: variant.stock_qty, // ✅ match backend key exactly
+      stock_qty: variant.stock_qty,
       barcode: variant.barcode,
-      // slug: variant.slug,
     };
 
     const response = await fetch(
@@ -170,7 +159,6 @@ const updateVariant = async (
 
     return { success: true, message: result.message };
   } catch (error: any) {
-    console.error("Error updating product variant:", error);
     return {
       success: false,
       message: error.message || "Unknown error occurred",
@@ -195,7 +183,6 @@ const deleteProductWithVariants = async (productId: string): Promise<{ success: 
       message: result.message,
     };
   } catch (error: any) {
-    console.error("Error deleting product with variants:", error);
     return {
       success: false,
       message: error.message || "Unknown error occurred",
@@ -204,15 +191,12 @@ const deleteProductWithVariants = async (productId: string): Promise<{ success: 
 };
 
 const deleteProductVariant = async (
-  // productId: string,
   variantId: string
 ): Promise<{ success: boolean; message: string }> => {
   try {
     const response = await fetch(`${API_URL}/products/variants/${variantId}`, {
-      
       method: "DELETE",
     });
-    console.log(response);
 
     const result = await response.json();
 
@@ -225,7 +209,6 @@ const deleteProductVariant = async (
       message: result.message,
     };
   } catch (error: any) {
-    console.error("Error deleting product variant:", error);
     return {
       success: false,
       message: error.message || "Unknown error occurred",
@@ -248,12 +231,12 @@ const getAllVariants = async (): Promise<ProductVariant[]> => {
       throw new Error(result.message || "Failed to fetch product variants.");
     }
 
-    return result.data; // ✅ This is the array of product objects
+    return result.data;
   } catch (error: any) {
-    console.error("❌ Error fetching product variants:", error);
     throw new Error(error?.message || "Something went wrong");
   }
 };
+
 const ProductService = {      
   createProductWithVariants,
   getAllProducts,
@@ -264,4 +247,5 @@ const ProductService = {
   deleteProductVariant,
   getAllVariants
 };
+
 export default ProductService;

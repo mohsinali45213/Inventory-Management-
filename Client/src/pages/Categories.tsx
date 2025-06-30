@@ -6,12 +6,10 @@ import Input from "../components/common/Input";
 import Alert from "../components/common/Alert";
 import { Category } from "../types/index";
 import CategoryService from "../functions/category";
-// import category from "../functions/category";
 
 const Categories: React.FC = () => {
   const [allCategories, setAllCategories] = useState<Category[] | any[]>([]);
 
-  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | any>(null);
@@ -33,7 +31,7 @@ const Categories: React.FC = () => {
       setAllCategories(categories || []);
     } catch (error) {
       setAlert({ type: "error", message: "Failed to fetch category." });
-      setAllCategories([]); // Set empty array on error
+      setAllCategories([]);
     }
   };
 
@@ -88,9 +86,9 @@ const Categories: React.FC = () => {
     if (alert) {
       const timer = setTimeout(() => {
         setAlert(null);
-      }, 3000); // 3 seconds
+      }, 3000);
 
-      return () => clearTimeout(timer); // Clean up
+      return () => clearTimeout(timer);
     }
   }, [alert]);
 
@@ -98,7 +96,6 @@ const Categories: React.FC = () => {
     <div className="page">
       <div className="page-header">
         <div className="page-title">
-          {/* <Tag className="page-icon" /> */}
           <Folder className="page-icon" />
           <div>
             <h1>Category</h1>

@@ -141,26 +141,17 @@ const Dashboard: React.FC = () => {
 
   const getAllDrafts = async () => {
     try {
-      // console.log('Fetching drafts...');
       const response = await invoiceDraftService.getAllInvoiceDrafts();
-      // console.log('Drafts response:', response);
-      // console.log('Drafts data structure:', response.data);
       if (response.data && response.data.length > 0) {
-        // console.log('First draft structure:', response.data[0]);
-        // console.log('First draft total type:', typeof response.data[0].total);
-        // console.log('First draft total value:', response.data[0].total);
+        // Draft data available
       }
       setInvoiceDrafts(response.data || []);
-      // console.log('Drafts set to:', response.data || []);
     } catch (error) {
-      console.error("Error fetching drafts:", error);
+      // Error fetching drafts
     }
   };
 
   const handleDraftsButtonClick = () => {
-    console.log('Drafts button clicked');
-    console.log('Current showDraftsModal state:', showDraftsModal);
-    console.log('Current invoiceDrafts:', invoiceDrafts);
     setShowDraftsModal(true);
   };
 
@@ -191,18 +182,12 @@ const Dashboard: React.FC = () => {
         })),
       };
 
-      // Only add customer information if both name and phone are provided
       if (customerInfo.name && customerInfo.name.trim() && customerInfo.phone && customerInfo.phone.trim()) {
         draftData.customerName = customerInfo.name.trim();
         draftData.customerPhone = customerInfo.phone.trim();
       }
-
-      console.log('Saving draft with data:', JSON.stringify(draftData, null, 2));
-      console.log('Billing items:', billingItems);
-      console.log('Payment details:', paymentDetails);
       
       const response = await invoiceDraftService.createInvoiceDraft(draftData);
-      console.log('Draft saved successfully:', response);
       
       showMessage('success', 'Invoice saved as draft successfully!', {
         draftNumber: response.data?.draft?.draftNumber || 'Draft-' + response.data?.draft?.id?.slice(0, 8),
@@ -214,12 +199,6 @@ const Dashboard: React.FC = () => {
       handleNewInvoice();
       getAllDrafts();
     } catch (error: any) {
-      console.error('Error saving draft:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
       showMessage('error', error.message || 'Failed to save draft');
     } finally {
       setLoading(false);
@@ -253,18 +232,13 @@ const Dashboard: React.FC = () => {
         })),
       };
 
-      // Only add customer information if both name and phone are provided
       if (customerInfo.name && customerInfo.name.trim() && customerInfo.phone && customerInfo.phone.trim()) {
         invoiceData.customerName = customerInfo.name.trim();
         invoiceData.customerPhone = customerInfo.phone.trim();
       }
-
-      console.log('Creating final invoice with data:', JSON.stringify(invoiceData, null, 2));
       
       const response = await invoiceService.createInvoiceWithItems(invoiceData);
-      console.log('Invoice created successfully:', response);
       
-      // Create invoice object for printing
       const createdInvoice = {
         id: response.data?.invoice?.id,
         invoiceNumber: response.data?.invoice?.invoiceNumber || 'INV-' + response.data?.invoice?.id?.slice(0, 8),
@@ -288,7 +262,6 @@ const Dashboard: React.FC = () => {
         })),
       };
       
-      // Print the invoice
       printInvoice(createdInvoice);
       
       showMessage('success', 'Invoice created and printed successfully!', {
@@ -300,7 +273,6 @@ const Dashboard: React.FC = () => {
       });
       handleNewInvoice();
     } catch (error: any) {
-      console.error('Error creating invoice:', error);
       showMessage('error', error.message || 'Failed to create invoice');
     } finally {
       setLoading(false);
@@ -508,7 +480,6 @@ const Dashboard: React.FC = () => {
     setLoading(true);
     try {
       const response = await invoiceDraftService.convertDraftToInvoice(draftId);
-      console.log('Draft converted to invoice successfully:', response);
       
       showMessage('success', 'Draft converted to invoice successfully!', {
         invoiceNumber: response.data?.invoiceNumber || 'INV-' + response.data?.id?.slice(0, 8),
@@ -520,7 +491,6 @@ const Dashboard: React.FC = () => {
       setShowDraftsModal(false);
       getAllDrafts();
     } catch (error: any) {
-      console.error('Error converting draft to invoice:', error);
       showMessage('error', error.message || 'Failed to convert draft to invoice');
     } finally {
       setLoading(false);
@@ -530,22 +500,8 @@ const Dashboard: React.FC = () => {
   const handleLoadDraft = async (draftId: string) => {
     setLoading(true);
     try {
-      console.log('Loading draft with ID:', draftId);
       const response = await invoiceDraftService.getInvoiceDraftById(draftId);
-      console.log('Raw response from backend:', response);
       const draft = response.data;
-      console.log('Loaded draft data:', draft);
-      console.log('Draft keys:', Object.keys(draft));
-      console.log('Full draft object:', JSON.stringify(draft, null, 2));
-      console.log('Draft customer info:', {
-        customerName: draft.customerName,
-        customerPhone: draft.customerPhone,
-        customer: draft.customer
-      });
-      console.log('Draft.items:', draft.items);
-      console.log('Draft.InvoiceDraftItems:', draft.InvoiceDraftItems);
-      console.log('Draft.invoice_draft_items:', draft.invoice_draft_items);
-      console.log('Draft.InvoiceDraftItem:', draft.InvoiceDraftItem);
       
       // Load draft data - use customerName and customerPhone from the formatted response
       setCustomerInfo({
@@ -562,57 +518,50 @@ const Dashboard: React.FC = () => {
         gst: Number(draft.tax) || 0,
         total: Number(draft.total) || 0,
       };
-      console.log('Setting payment details:', paymentData);
       setPaymentDetails(paymentData);
 
       // Load items if they exist - use the correct alias "items"
       const draftItems = draft.items || draft.InvoiceDraftItems || draft.invoice_draft_items || draft.InvoiceDraftItem || draft.invoice_draft_item || [];
-      console.log('Draft items found:', draftItems);
       
       if (draftItems && draftItems.length > 0) {
-        console.log('Loading draft items:', draftItems);
-        
         // We need to fetch the product details for each item
         const loadedItems = await Promise.all(
           draftItems.map(async (item: any) => {
             try {
-              console.log('Loading item details for variantId:', item.variantId);
               // Get product variant details
               const variantResponse = await fetch(`${API_URL}/product-variants/${item.variantId}`);
               if (variantResponse.ok) {
                 const variantData = await variantResponse.json();
-                console.log('Variant data for', item.variantId, ':', variantData);
                 
                 const billingItem = {
                   id: item.variantId,
                   productId: variantData.data.productId,
                   variantId: item.variantId,
                   productName: variantData.data.product?.name || 'Unknown Product',
-                  size: variantData.data.size,
-                  color: variantData.data.color,
-                  quantity: Number(item.quantity) || 1,
+                  size: variantData.data.size || '',
+                  color: variantData.data.color || '',
+                  quantity: Number(item.quantity) || 0,
                   unitPrice: Number(variantData.data.price) || 0,
                   total: Number(item.total) || 0,
-                  barcode: variantData.data.barcode,
+                  barcode: variantData.data.barcode || '',
                   stock_qty: Number(variantData.data.stock_qty) || 0,
                 };
-                console.log('Created billing item:', billingItem);
                 return billingItem;
               } else {
-                console.error('Failed to fetch variant data for:', item.variantId);
+                // Failed to fetch variant data
+                return null;
               }
             } catch (error) {
-              console.error('Error loading item details for variantId:', item.variantId, error);
+              // Error loading item details
+              return null;
             }
-            return null;
           })
         );
         
         const validItems = loadedItems.filter(item => item !== null);
-        console.log('Setting billing items:', validItems);
         setBillingItems(validItems);
       } else {
-        console.log('No draft items found, clearing billing items');
+        // No draft items found, clearing billing items
         setBillingItems([]);
       }
       
@@ -625,7 +574,6 @@ const Dashboard: React.FC = () => {
       });
       setShowDraftsModal(false);
     } catch (error: any) {
-      console.error('Error loading draft:', error);
       showMessage('error', error.message || 'Failed to load draft');
     } finally {
       setLoading(false);
@@ -778,10 +726,35 @@ const Dashboard: React.FC = () => {
 
   const getAllProducts = async () => {
     try {
-      const response = await ProductService.getAllVariants();
-      setAllProducts(response);
+      const [products, categories, brands] = await Promise.all([
+        ProductService.getAllProducts(),
+        CategoryService.getAllCategories(),
+        (await import('../functions/brand')).default.getAllBrand()
+      ]);
+
+      // Create lookup maps for category and brand names
+      const categoryMap = Object.fromEntries(categories.map((cat: any) => [cat.id, cat.name]));
+      const brandMap = Object.fromEntries(brands.map((brand: any) => [brand.id, brand.name]));
+
+      // Flatten products and join names
+      const flatProducts = products.flatMap((product: any) =>
+        (product.variants || []).map((variant: any) => ({
+          id: variant.id,
+          product: {
+            name: product.name,
+            category: { name: categoryMap[product.categoryId] || '' },
+            brand: { name: brandMap[product.brandId] || '' }
+          },
+          size: variant.size,
+          color: variant.color,
+          barcode: variant.barcode || '',
+          price: variant.price,
+          stock_qty: variant.stock_qty,
+        }))
+      );
+      setAllProducts(flatProducts);
     } catch (error) {
-      console.error("Error fetching products:", error);
+      // Error fetching products
     }
   };
 
@@ -791,8 +764,7 @@ const Dashboard: React.FC = () => {
       const result = await response.json();
       setAllCustomers(result.data || []);
     } catch (error) {
-      console.error("Error fetching customers:", error);
-      setAllCustomers([]); // Set empty array on error
+      // Error fetching customers
     }
   };
 
@@ -847,7 +819,6 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard">
-      {/* Message Display */}
       {message && (
         <Toast
           type={message.type}
@@ -857,7 +828,6 @@ const Dashboard: React.FC = () => {
         />
       )}
 
-      {/* Drafts Modal */}
       {showDraftsModal && (
         <div className="modal-overlay">
           <div className="modal-card">
@@ -910,14 +880,6 @@ const Dashboard: React.FC = () => {
                         <RotateCcw size={14} />
                         Load
                       </button>
-                      {/* <button 
-                        className="draft-btn convert"
-                        onClick={() => handleConvertDraftToInvoice(draft.id)}
-                        disabled={loading}
-                      >
-                        <Printer size={14} />
-                        Convert to Invoice
-                      </button> */}
                       <button 
                         className="draft-btn delete"
                         onClick={() => handleDeleteDraft(draft.id)}
@@ -1084,10 +1046,6 @@ const Dashboard: React.FC = () => {
         <div className="customer-info">
           <div className="head">
             <h2>Customer Info</h2>
-            {/* <button className="btn-add-customer">
-              <Plus size={15} />
-              <p>Add Customer</p>
-            </button> */}
           </div>
           <div className="search-customer">
             <input 

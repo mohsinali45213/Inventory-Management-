@@ -30,9 +30,8 @@ const getAllCategories = async (): Promise<Category[]> => {
       throw new Error(result.message || "Failed to fetch categories");
     }
     
-    return result.data; // Return the actual categories array
+    return result.data;
   } catch (error: any) {
-    console.error("Error fetching categories:", error);
     throw new Error(error?.message || "Something went wrong");
   }
 };

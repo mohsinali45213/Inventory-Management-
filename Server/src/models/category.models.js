@@ -1,4 +1,3 @@
-
 // create using sql database
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../db/db.js";

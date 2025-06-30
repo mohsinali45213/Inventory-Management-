@@ -11,7 +11,6 @@ import Categories from './pages/Categories';
 import Brands from './pages/Brands';
 import StockManagement from './pages/StockManagement';
 import Invoices from './pages/Invoices';
-import LowStock from './pages/LowStock';
 import Reports from './pages/Reports';
 import Barcode from './pages/Barcode';
 import SubCategories from './pages/SubCategories';
@@ -40,9 +39,7 @@ const AppRoutes: React.FC = () => {
         <Route path="stock" element={<StockManagement />} />
         <Route path="invoices" element={<Invoices />} />
         <Route path="reports" element={<Reports />} />
-        {/* <Route path="low-stock" element={<LowStock />} /> */}
         <Route path="barcode" element={<Barcode />} />
-        <Route path="reports" element={<Reports />} />
         <Route path="*" element={<PageNotFound />} />
       </Route>
     </Routes>

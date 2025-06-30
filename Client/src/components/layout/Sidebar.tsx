@@ -7,7 +7,6 @@ import {
   Tag, 
   BarChart3, 
   FileText, 
-  AlertTriangle, 
   Printer,
   TrendingUp,
   Folders
@@ -22,7 +21,6 @@ const Sidebar: React.FC = () => {
     { icon: Tag, label: 'Brands', path: '/brands' },
     { icon: BarChart3, label: 'Stock Management', path: '/stock' },
     { icon: FileText, label: 'Invoices', path: '/invoices' },
-    // { icon: AlertTriangle, label: 'Low Stock', path: '/low-stock' },
     { icon: Printer, label: 'Print Barcode', path: '/barcode' },
     { icon: TrendingUp, label: 'Reports', path: '/reports' }
   ];

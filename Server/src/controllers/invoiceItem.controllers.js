@@ -40,7 +40,6 @@ export const createInvoiceItem = async (req, res) => {
       data: newItem,
     });
   } catch (error) {
-    console.error("Error creating invoice item:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error.",
@@ -70,7 +69,6 @@ export const getAllInvoiceItems = async (req, res) => {
       data: items,
     });
   } catch (error) {
-    console.error("Error fetching invoice items:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error.",
@@ -96,7 +94,6 @@ export const getInvoiceItemsByInvoiceId = async (req, res) => {
       data: items,
     });
   } catch (error) {
-    console.error("Error fetching items by invoice ID:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error.",
@@ -121,7 +118,6 @@ export const deleteInvoiceItem = async (req, res) => {
       message: "Invoice item deleted successfully.",
     });
   } catch (error) {
-    console.error("Error deleting invoice item:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error.",

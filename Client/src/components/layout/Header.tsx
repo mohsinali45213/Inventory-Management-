@@ -1,22 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { Search, Bell, Plus, ChevronDown, User, LogOut } from "lucide-react";
+import React, { useState } from "react";
+import { Plus, ChevronDown, User, LogOut } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useModal } from "../../context/ModalContext";
-import ProductService from "../../functions/product";
-import BransService from "../../functions/brand";
-import CategoryService from "../../functions/category";
-import SubCategoryService from "../../functions/subCategory";
 import { Link } from "react-router-dom";
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
-  const [products, setProducts] = useState([]);
-  const [brands, setBrands] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [subCategories, setSubCategories] = useState([]);
-  const { setTriggerAddModal  } = useModal();
+  const { setTriggerAddModal } = useModal();
+
   return (
     <header className="header">
       <div className="header-content">
@@ -27,8 +20,6 @@ const Header: React.FC = () => {
         </div>
 
         <div className="header-right">
-        
-
           <div className="quick-add-dropdown">
             <button
               className="quick-add-btn"
@@ -45,12 +36,10 @@ const Header: React.FC = () => {
                   <button className="dropdown-item" onClick={() => {
                     setTriggerAddModal(true);
                   }}>
-                  <Plus size={16} />
-                  Add Product
-                </button></Link>
-                {/* <button className="dropdown-item">Create Invoice</button>
-                <button className="dropdown-item">Add Category</button>
-                <button className="dropdown-item">Add Brand</button> */}
+                    <Plus size={16} />
+                    Add Product
+                  </button>
+                </Link>
               </div>
             )}
           </div>

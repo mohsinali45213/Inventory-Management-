@@ -23,20 +23,39 @@ const LowStock: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [brandRes, categoryRes, productRes] = await Promise.all([
-        BrandService.getAllBrand(),
-        CategoryService.getAllCategories(),
-        productService.getAllProducts(),
-      ]);
+      const products = await productService.getAllProducts();
+      const categories = await CategoryService.getAllCategories();
+      const brands = await BrandService.getAllBrand();
 
-      setBrands(brandRes.data || []);
-      setCategories(categoryRes.data || []);
-      setProducts(productRes || []);
+      setProducts(products);
+      setCategories(categories);
+      setBrands(brands);
+
+      const lowStockItems = products.flatMap(product =>
+        product.variants
+          .filter(variant => variant.stock_qty <= 10)
+          .map(variant => ({
+            productId: product.id,
+            variantId: variant.id,
+            productName: product.name,
+            categoryId: product.categoryId,
+            categoryName: getCategoryName(product.categoryId),
+            brandId: product.brandId,
+            brandName: getBrandName(product.brandId),
+            size: variant.size,
+            color: variant.color,
+            stock: variant.stock_qty,
+            price: variant.price,
+            barcode: variant.barcode,
+            lastSold: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000)
+          }))
+      );
+
+      setProducts(products);
+      setCategories(categories);
+      setBrands(brands);
     } catch (error) {
-      console.error("Error loading data:", error);
-      setBrands([]);
-      setCategories([]);
-      setProducts([]);
+      // Error loading data
     }
   };
 
@@ -217,7 +236,6 @@ const LowStock: React.FC = () => {
                         <div className="product-image-placeholder"><Package size={20} /></div>
                         <div className="product-info">
                           <div className="product-name">{item.productName}</div>
-                          {/* <div className="product-sku">SKU: {item.sku}</div> */}
                           <div className="product-barcode">Barcode: {item.barcode}</div>
                         </div>
                       </div>

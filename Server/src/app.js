@@ -3,20 +3,19 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { sequelize } from "./models/index.js";
-import models from "./models/index.js";
 
 import brandRouter from "./routes/brand.routes.js";
 import categoryRouter from "./routes/category.routes.js";
 import customerRouter from "./routes/customers.routes.js";
 import invoiceRouter from "./routes/invoice.routes.js";
 import invoiceItemRouter from "./routes/invoiceItem.routes.js";
+import invoiceDraftRouter from "./routes/invoicedraft.routes.js";
+import invoiceDraftItemRouter from "./routes/invoicedraftitem.routes.js";
 import productRouter from "./routes/products.routes.js";
 import productVariantRouter from "./routes/productVariant.routes.js";
 import subCategoryRouter from "./routes/subCategory.routes.js";
 import userRouter from "./routes/users.routes.js";
 import config from "./config/config.js";
-import invoiceDraftRouter from "./routes/invoicedraft.routes.js";
-import invoiceDraftItemRouter from "./routes/invoicedraftitem.routes.js";
 
 dotenv.config({ path: "../.env" });
 
@@ -41,15 +40,13 @@ app.use("/api/v1/users", userRouter);
 sequelize
   .sync()
   .then(() => {
-    app.listen(process.env.PORT, () => {
-      console.log(
-        `Application server is running at http://localhost:${config.PORT}`
-      );
+    app.listen(config.PORT, () => {
+      console.log(`Application server is running at http://localhost:${config.PORT}`);
     });
   })
   .catch((err) => {
-    console.log("Failed to sync db: " );
+    console.log("Failed to sync db:", err.message);
   });
 
-export { sequelize, models };
-export default app; // Export the app for testing or further configuration
+export { sequelize };
+export default app;
